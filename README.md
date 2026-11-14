@@ -24,7 +24,7 @@ HA_funkel_luna/
     └── validate.py
 ```
 
-Die Medien werden über einen **separaten Pull Request** ergänzt. Erst nach dessen Merge ist der gesamte Medienbestand Teil dieses öffentlichen Repositories. Die 24 Clipnamen und die Original-Media-Source-Pfade bleiben erhalten.
+Der vollständige veröffentlichte Projektstand umfasst **18 MP3-Audios, 6 MP4-Videos und 8 Referenzbilder**. Die Medien sind unter `media/` organisiert. Die 24 Clipnamen und die Original-Media-Source-Pfade bleiben erhalten.
 
 ## Was passiert in der Schnitzeljagd?
 
