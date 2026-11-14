@@ -1,0 +1,2387 @@
+title: Funkel & Luna
+views:
+  - title: Spielleitung
+    path: spielleitung
+    icon: mdi:unicorn-variant
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        column_span: 3
+        cards:
+          - type: custom:mushroom-title-card
+            title: 🐉 Funkel & Luna · Spielleitung
+            subtitle: Das Regenbogen-Abenteuer 🌈  ·  6 Stationen  ·  7 Aufgaben
+            grid_options:
+              columns: full
+              rows: auto
+          - type: custom:mushroom-chips-card
+            alignment: start
+            chips:
+              - type: template
+                content: >-
+                  {% if is_state('input_select.funkel_luna_station',
+                  'Geschafft') %}GESCHAFFT{% elif
+                  is_state('input_boolean.funkel_luna_finale_erledigt', 'on')
+                  %}FINALE LÄUFT{% elif
+                  is_state('input_boolean.funkel_luna_3a_countdown', 'on') %}3A
+                  IN 10 SEKUNDEN{% elif
+                  is_state('input_boolean.funkel_luna_spiel_aktiv', 'on')
+                  %}SPIEL LÄUFT{% else %}BEREIT{% endif %}
+                icon: >-
+                  {{ 'mdi:trophy' if
+                  is_state('input_select.funkel_luna_station', 'Geschafft') else
+                  'mdi:play-circle' if
+                  is_state('input_boolean.funkel_luna_spiel_aktiv','on') else
+                  'mdi:pause-circle-outline' }}
+                icon_color: >-
+                  {{ 'green' if is_state('input_select.funkel_luna_station',
+                  'Geschafft') else 'amber' if
+                  is_state('input_boolean.funkel_luna_finale_erledigt','on')
+                  else 'green' if
+                  is_state('input_boolean.funkel_luna_spiel_aktiv','on') else
+                  'grey' }}
+              - type: template
+                content: >-
+                  {{ states('sensor.funkel_luna_version_hauptpackage') if
+                  states('sensor.funkel_luna_version_hauptpackage') not in
+                  ['unknown','unavailable','none',''] else '?' }} (4.19)
+                icon: mdi:source-branch
+                icon_color: blue
+                tap_action:
+                  action: none
+            grid_options:
+              columns: full
+              rows: auto
+          - type: heading
+            heading: 🎮 Übersicht & Regie
+            heading_style: title
+            grid_options:
+              columns: full
+              rows: auto
+          - square: false
+            type: grid
+            columns: 1
+            cards:
+              - type: vertical-stack
+                cards:
+                  - type: grid
+                    columns: 2
+                    square: false
+                    cards:
+                      - type: custom:ring-tile
+                        entity: sensor.funkel_luna_fortschritt
+                        name: Fortschritt
+                        min: 0
+                        max: 100
+                        ring_size: 4
+                      - type: vertical-stack
+                        cards:
+                          - type: custom:mushroom-template-card
+                            primary: Aktuelle Station
+                            secondary: '{{ states(''input_select.funkel_luna_station'') }}'
+                            icon: mdi:map-marker-path
+                            color: purple
+                            multiline_secondary: true
+                            tap_action:
+                              action: none
+                          - type: custom:mushroom-template-card
+                            primary: Spiel vorbereiten
+                            secondary: Rollos schließen · ohne Clip
+                            icon: mdi:play-circle-outline
+                            color: green
+                            multiline_secondary: true
+                            tap_action:
+                              action: perform-action
+                              perform_action: script.funkel_luna_spiel_starten
+                          - type: custom:mushroom-template-card
+                            primary: MEDIEN-STOPP
+                            secondary: Alle Clipfolgen beenden
+                            icon: mdi:stop-circle
+                            color: red
+                            multiline_secondary: true
+                            tap_action:
+                              action: perform-action
+                              perform_action: script.funkel_luna_stopp_alle
+                          - type: custom:mushroom-template-card
+                            primary: Spiel zurücksetzen
+                            secondary: Haken, Status & Wiedergabe zurücksetzen
+                            icon: mdi:restart
+                            color: red
+                            multiline_secondary: true
+                            tap_action:
+                              action: perform-action
+                              perform_action: script.funkel_luna_zuruecksetzen
+                              confirmation:
+                                text: Alle Aufgaben zurücksetzen und Medien stoppen?
+                            grid_options:
+                              columns: 12
+                              rows: auto
+                    grid_options:
+                      columns: 12
+                      rows: auto
+            grid_options:
+              columns: 18
+              rows: auto
+          - type: heading
+            heading: 🧭 Szenenregie · 6 Stationen
+            heading_style: title
+            grid_options:
+              columns: full
+              rows: auto
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🍽️ 1 · Drachennest
+            heading_style: title
+            grid_options:
+              columns: 12
+              rows: auto
+            badges:
+              - type: entity
+                entity: input_boolean.funkel_luna_nest_erledigt
+                name: Nest & Hilferuf
+                icon: mdi:bird
+                color: green
+                show_state: false
+                tap_action:
+                  action: none
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Szene starten
+                secondary: Einleitungsclip
+                icon: mdi:play-circle
+                color: green
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_station_1_starten
+              - type: custom:mushroom-template-card
+                primary: Einzelsteuerung
+                secondary: Medien & Geräte
+                icon: mdi:tune
+                color: purple
+                multiline_secondary: true
+                tap_action:
+                  action: navigate
+                  navigation_path: /funkel-luna/szene-1
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: 1 · Nest & Hilferuf
+            secondary: >-
+              {{ '✓ Erledigt · ' if
+              is_state('input_boolean.funkel_luna_nest_erledigt','on') else '○
+              Offen · ' }}Nur Fortschritt, kein zusätzlicher Clip
+            icon: mdi:bird
+            color: >-
+              {{ 'green' if
+              is_state('input_boolean.funkel_luna_nest_erledigt','on') else
+              'grey' }}
+            entity: input_boolean.funkel_luna_nest_erledigt
+            multiline_secondary: true
+            tap_action:
+              action: toggle
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: Ablauf & Auslöser
+            secondary: >-
+              1A: Funkel–Luna–Funkel. Danach automatisch Kodi & 1B_1 → 1B_2.
+              Nest-Haken: nur Fortschritt. Weiter zu Station 2 manuell.
+            icon: mdi:script-text-outline
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: none
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: markdown
+            content: |-
+              ### ✨ Gemeinsamer Ruf
+
+              > **„DRACHENMUT UND EINHORNGLANZ!“**
+
+              *Ruf beim Auftakt mit Funkel und Luna*
+            grid_options:
+              columns: 12
+              rows: auto
+        column_span: 1
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🌈 2 · Regenbogen
+            heading_style: title
+            grid_options:
+              columns: 12
+              rows: auto
+            badges:
+              - type: entity
+                entity: input_boolean.funkel_luna_regenbogen_erledigt
+                name: Regenbogen
+                icon: mdi:looks
+                color: green
+                show_state: false
+                tap_action:
+                  action: none
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Szene starten
+                secondary: Einleitungsclip
+                icon: mdi:play-circle
+                color: green
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_station_2_starten
+              - type: custom:mushroom-template-card
+                primary: Einzelsteuerung
+                secondary: Medien & Geräte
+                icon: mdi:tune
+                color: purple
+                multiline_secondary: true
+                tap_action:
+                  action: navigate
+                  navigation_path: /funkel-luna/szene-2
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: 2 · Regenbogen repariert
+            secondary: >-
+              {{ '✓ Erledigt · ' if
+              is_state('input_boolean.funkel_luna_regenbogen_erledigt','on')
+              else '○ Offen · ' }}Startet Video 2B → 10 s → Audio 3A
+            icon: mdi:looks
+            color: >-
+              {{ 'green' if
+              is_state('input_boolean.funkel_luna_regenbogen_erledigt','on')
+              else 'grey' }}
+            entity: input_boolean.funkel_luna_regenbogen_erledigt
+            multiline_secondary: true
+            tap_action:
+              action: toggle
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: Ablauf & Auslöser
+            secondary: >-
+              2A: drei Audios. Haken „Regenbogen“ → Video 2B. Nach dem Video: 10
+              Sekunden → 3A in Spielbereich 3. Stationswechsel manuell.
+            icon: mdi:script-text-outline
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: none
+            grid_options:
+              columns: 12
+              rows: auto
+        column_span: 1
+      - type: grid
+        cards:
+          - type: heading
+            heading: 💎 3 · Zaubersteine
+            heading_style: title
+            grid_options:
+              columns: 12
+              rows: auto
+            badges:
+              - type: entity
+                entity: input_boolean.funkel_luna_steine_erledigt
+                name: Zaubersteine
+                icon: mdi:diamond-stone
+                color: green
+                show_state: false
+                tap_action:
+                  action: none
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Szene starten
+                secondary: Einleitungsclip
+                icon: mdi:play-circle
+                color: green
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_station_3_starten
+              - type: custom:mushroom-template-card
+                primary: Einzelsteuerung
+                secondary: Medien & Geräte
+                icon: mdi:tune
+                color: purple
+                multiline_secondary: true
+                tap_action:
+                  action: navigate
+                  navigation_path: /funkel-luna/szene-3
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: 3 · Zaubersteine gefunden
+            secondary: >-
+              {{ '✓ Erledigt · ' if
+              is_state('input_boolean.funkel_luna_steine_erledigt','on') else '○
+              Offen · ' }}Rainbow B + Lava-Licht (100 %) → nach 2 s Audio 3B
+            icon: mdi:diamond-stone
+            color: >-
+              {{ 'green' if
+              is_state('input_boolean.funkel_luna_steine_erledigt','on') else
+              'grey' }}
+            entity: input_boolean.funkel_luna_steine_erledigt
+            multiline_secondary: true
+            tap_action:
+              action: toggle
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: Ablauf & Auslöser
+            secondary: >-
+              3A spricht über den Spielbereich 3-Speaker. Haken „Zaubersteine“ → Rainbow B
+              bei Spielbereich 3 und Lava-Licht bei Spielbereich 4 (beide 100 %), nach 2 s
+              Funkel 3B. Nächste Station manuell starten.
+            icon: mdi:script-text-outline
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: none
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: markdown
+            content: >-
+              ### ✨ Gemeinsamer Ruf
+
+
+              > **„Glitzerstein und Funkellicht, versteck die Zauberkraft jetzt
+              nicht!“**
+
+
+              *Zauberspruch zu den Kartoffel-/Zaubersteinen*
+            grid_options:
+              columns: 12
+              rows: auto
+        column_span: 1
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🌋 4 · Lavafeld
+            heading_style: title
+            grid_options:
+              columns: 12
+              rows: auto
+            badges:
+              - type: entity
+                entity: input_boolean.funkel_luna_lava_erledigt
+                name: Lavafeld
+                icon: mdi:fire
+                color: green
+                show_state: false
+                tap_action:
+                  action: none
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Szene starten
+                secondary: Einleitungsclip
+                icon: mdi:play-circle
+                color: green
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_station_4_starten
+              - type: custom:mushroom-template-card
+                primary: Einzelsteuerung
+                secondary: Medien & Geräte
+                icon: mdi:tune
+                color: purple
+                multiline_secondary: true
+                tap_action:
+                  action: navigate
+                  navigation_path: /funkel-luna/szene-4
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: 4 · Lavafeld überquert
+            secondary: >-
+              {{ '✓ Erledigt · ' if
+              is_state('input_boolean.funkel_luna_lava_erledigt','on') else '○
+              Offen · ' }}Audio 4B → 3 s → 5A_1 im Spielbereich 5
+            icon: mdi:fire
+            color: >-
+              {{ 'green' if
+              is_state('input_boolean.funkel_luna_lava_erledigt','on') else
+              'grey' }}
+            entity: input_boolean.funkel_luna_lava_erledigt
+            multiline_secondary: true
+            tap_action:
+              action: toggle
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: Ablauf & Auslöser
+            secondary: >-
+              Lava-Licht ist seit dem Erfolg in Station 3 aktiv. Start 4A:
+              Dialog und Feuereffekt. Haken „Lavafeld“ → 4B; 3 Sekunden nach
+              dessen Ende spricht 5A_1 aus dem Spielbereich 5. Station 5 danach manuell
+              starten (5A_2).
+            icon: mdi:script-text-outline
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: none
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: markdown
+            content: >-
+              ### ✨ Gemeinsamer Ruf
+
+
+              > **„Blubber, blubber, Drachenmut, unser Vulkan, der wird jetzt
+              gut!“**
+
+
+              *Zauberspruch am Lavafeld*
+            grid_options:
+              columns: 12
+              rows: auto
+        column_span: 1
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🐉 5 · Schlüssel & Ei
+            heading_style: title
+            grid_options:
+              columns: 12
+              rows: auto
+            badges:
+              - type: entity
+                entity: input_boolean.funkel_luna_schluessel_erledigt
+                name: Drachenschlüssel
+                icon: mdi:key-variant
+                color: green
+                show_state: false
+                tap_action:
+                  action: none
+              - type: entity
+                entity: input_boolean.funkel_luna_drachenei_erledigt
+                name: Drachenei
+                icon: mdi:egg-easter
+                color: green
+                show_state: false
+                tap_action:
+                  action: none
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Szene starten
+                secondary: Einleitungsclip
+                icon: mdi:play-circle
+                color: green
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_station_5_starten
+              - type: custom:mushroom-template-card
+                primary: Einzelsteuerung
+                secondary: Medien & Geräte
+                icon: mdi:tune
+                color: purple
+                multiline_secondary: true
+                tap_action:
+                  action: navigate
+                  navigation_path: /funkel-luna/szene-5
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: 5 · Drachenschlüssel fertig
+            secondary: >-
+              {{ '✓ Erledigt · ' if
+              is_state('input_boolean.funkel_luna_schluessel_erledigt','on')
+              else '○ Offen · ' }}Startet Dialogfolge 5B
+            icon: mdi:key-variant
+            color: >-
+              {{ 'green' if
+              is_state('input_boolean.funkel_luna_schluessel_erledigt','on')
+              else 'grey' }}
+            entity: input_boolean.funkel_luna_schluessel_erledigt
+            multiline_secondary: true
+            tap_action:
+              action: toggle
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: 6 · Drachenei gefunden
+            secondary: >-
+              {{ '✓ Erledigt · ' if
+              is_state('input_boolean.funkel_luna_drachenei_erledigt','on') else
+              '○ Offen · ' }}Startet Dialogfolge 5C
+            icon: mdi:egg-easter
+            color: >-
+              {{ 'green' if
+              is_state('input_boolean.funkel_luna_drachenei_erledigt','on') else
+              'grey' }}
+            entity: input_boolean.funkel_luna_drachenei_erledigt
+            multiline_secondary: true
+            tap_action:
+              action: toggle
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: Ablauf & Auslöser
+            secondary: >-
+              Nach Ende von 4B wurde 5A_1 bereits automatisch abgespielt. Start
+              von Station 5 spielt nur 5A_2. Schlüssel-Haken → 5B,
+              Drachenei-Haken → 5C. Station 6 manuell starten.
+            icon: mdi:script-text-outline
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: none
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: markdown
+            content: >-
+              ### ✨ Gemeinsamer Ruf
+
+
+              > **„Drachenei, erwache sacht, bring zurück die Zaubermacht!“**
+
+
+              *Der bestätigte Spruch gehört zum Drachenei (5C). Für den
+              Drachenschlüssel ist kein weiterer gemeinsamer Spruch hinterlegt.*
+            grid_options:
+              columns: 12
+              rows: auto
+        column_span: 1
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🎁 6 · Schatz
+            heading_style: title
+            grid_options:
+              columns: 12
+              rows: auto
+            badges:
+              - type: entity
+                entity: input_boolean.funkel_luna_finale_erledigt
+                name: Schatz
+                icon: mdi:treasure-chest
+                color: green
+                show_state: false
+                tap_action:
+                  action: none
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Szene starten
+                secondary: Einleitungsclip
+                icon: mdi:play-circle
+                color: green
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_station_6_starten
+              - type: custom:mushroom-template-card
+                primary: Einzelsteuerung
+                secondary: Medien & Geräte
+                icon: mdi:tune
+                color: purple
+                multiline_secondary: true
+                tap_action:
+                  action: navigate
+                  navigation_path: /funkel-luna/szene-6
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.funkel_luna_6b1_abgeschlossen
+                state: false
+            card:
+              type: custom:mushroom-template-card
+              primary: 7 · Schatz gefunden
+              secondary: '⏳ Noch gesperrt: Erst Video 6B_1 vollständig ansehen'
+              icon: mdi:treasure-chest
+              color: grey
+              entity: input_boolean.funkel_luna_finale_erledigt
+              multiline_secondary: true
+              tap_action:
+                action: none
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.funkel_luna_6b1_abgeschlossen
+                state: true
+            card:
+              type: custom:mushroom-template-card
+              primary: 7 · Schatz gefunden
+              secondary: >-
+                {% if is_state('input_select.funkel_luna_station','Geschafft')
+                %}✓ Abenteuer abgeschlossen{% elif
+                is_state('input_boolean.funkel_luna_finale_erledigt','on')
+                %}Finale 6B_2 läuft{% else %}Jetzt Schatzfund bestätigen → Video
+                6B_2{% endif %}
+              icon: mdi:treasure-chest
+              color: >-
+                {{ 'green' if
+                is_state('input_boolean.funkel_luna_finale_erledigt','on') else
+                'grey' }}
+              entity: input_boolean.funkel_luna_finale_erledigt
+              multiline_secondary: true
+              tap_action:
+                action: perform-action
+                perform_action: input_boolean.turn_on
+                target:
+                  entity_id: input_boolean.funkel_luna_finale_erledigt
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: Ablauf & Auslöser
+            secondary: >-
+              Start 6A über ADB/Kodi, danach automatisch 6B_1. Erst nach
+              bestätigtem Ende von 6B_1 wird der Schatz-Haken freigegeben →
+              6B_2. Nach dessen Ende: GESCHAFFT.
+            icon: mdi:script-text-outline
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: none
+            grid_options:
+              columns: 12
+              rows: auto
+        column_span: 1
+    dense_section_placement: false
+  - title: 1 · Drachennest · Einzelsteuerung
+    path: szene-1
+    subview: true
+    back_path: /funkel-luna/spielleitung
+    icon: mdi:table-furniture
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🍽️ 1 · Drachennest · Einzelsteuerung
+            heading_style: title
+          - type: custom:mushroom-title-card
+            title: Spielbereich 1 · Regiepult
+            subtitle: >-
+              Jede Datei unabhängig starten · Fortschritt nicht automatisch
+              ändern
+          - type: markdown
+            content: |-
+              ### ✨ Gemeinsamer Ruf
+
+              > **„DRACHENMUT UND EINHORNGLANZ!“**
+
+              *Ruf beim Auftakt mit Funkel und Luna*
+          - type: custom:mushroom-template-card
+            primary: Zurück zur Spielleitung
+            secondary: Alle Stationen
+            icon: mdi:arrow-left
+            color: purple
+            multiline_secondary: true
+            tap_action:
+              action: navigate
+              navigation_path: /funkel-luna/spielleitung
+          - type: custom:mushroom-template-card
+            primary: Szene neu starten
+            secondary: Stoppt andere Medien und setzt Station
+            icon: mdi:play-circle
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_station_1_starten
+          - type: custom:mushroom-template-card
+            primary: Aktive Station
+            secondary: '{{ states(''input_select.funkel_luna_station'') }}'
+            icon: mdi:map-marker-path
+            color: purple
+            multiline_secondary: true
+            tap_action:
+              action: none
+          - type: custom:mushroom-template-card
+            primary: MEDIEN-STOPP
+            secondary: Alle laufenden Folgen und Player abbrechen
+            icon: mdi:stop-circle
+            color: red
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_stopp_alle
+          - type: custom:mushroom-entity-card
+            entity: input_boolean.funkel_luna_nest_erledigt
+            name: Nest und Hilferuf erledigt
+            icon: mdi:check-circle-outline
+            tap_action:
+              action: toggle
+            secondary_info: state
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🎬 1A · Audio
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 1A · Ganze Clipfolge
+            secondary: >-
+              1A und danach automatisch Video 1B (wenn alle Audios regulär
+              enden)
+            icon: mdi:playlist-play
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_1a
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip1A_1_Funkel.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_1 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_1
+                ordner: Audio
+                datei: Clip1A_1_Funkel.mp3
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip1A_2_Luna.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_1 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_1
+                ordner: Audio
+                datei: Clip1A_2_Luna.mp3
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip1A_3_Funkel.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_1 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_1
+                ordner: Audio
+                datei: Clip1A_3_Funkel.mp3
+          - type: heading
+            heading: 🎬 1B · Video
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 1B · Ganze Clipfolge
+            secondary: Fire TV wird per ADB aufgeweckt, Kodi geöffnet, danach Video
+            icon: mdi:playlist-play
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_1b
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip1B_1.mp4
+            secondary: Einzelclip (Kodi-App wird vorher per ADB aktiviert)
+            icon: mdi:movie-open-play
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_kodi_station_1
+                ordner: Video
+                datei: Clip1B_1.mp4
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip1B_2.mp4
+            secondary: Einzelclip (Kodi-App wird vorher per ADB aktiviert)
+            icon: mdi:movie-open-play
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_kodi_station_1
+                ordner: Video
+                datei: Clip1B_2.mp4
+      - type: grid
+        cards:
+          - type: heading
+            heading: 💡 Effekte & Player
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 📺 Kodi auf dem Fire TV öffnen (ADB)
+            secondary: Fire TV aufwecken + Kodi per ADB öffnen · ohne Videostart
+            icon: mdi:kodi
+            color: amber
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_kodi_vorbereiten
+              data:
+                geraet: Medienzone_1
+          - type: custom:mushroom-entity-card
+            entity: media_player.funkel_tv_station_1
+            name: Fire TV · ADB-App/Quelle
+            icon: mdi:television-play
+            tap_action:
+              action: more-info
+          - type: custom:mushroom-template-card
+            primary: Kodi als Quelle aktiv?
+            secondary: >-
+              {{ state_attr('media_player.funkel_tv_station_1', 'source') | default('Quelle
+              unbekannt', true) }}
+            icon: mdi:check-circle-outline
+            color: >-
+              {{ 'green' if (state_attr('media_player.funkel_tv_station_1','source') |
+              default('',true) | lower) in ['kodi','org.xbmc.kodi'] else 'amber'
+              }}
+            tap_action:
+              action: none
+          - type: heading
+            heading: 🔊 media_player.funkel_audio_station_1
+            heading_style: title
+          - type: custom:mushroom-media-player-card
+            entity: media_player.funkel_audio_station_1
+            name: media_player.funkel_audio_station_1
+            use_media_info: true
+            show_volume_level: true
+            media_controls:
+              - on_off
+              - play_pause_stop
+              - previous
+              - next
+            volume_controls:
+              - volume_set
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Pause
+                secondary: ''
+                icon: mdi:pause
+                color: amber
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_1
+                    befehl: pause
+              - type: custom:mushroom-template-card
+                primary: Weiter
+                secondary: ''
+                icon: mdi:play
+                color: green
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_1
+                    befehl: weiter
+              - type: custom:mushroom-template-card
+                primary: Leiser
+                secondary: ''
+                icon: mdi:volume-minus
+                color: blue
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_1
+                    befehl: leiser
+              - type: custom:mushroom-template-card
+                primary: Lauter
+                secondary: ''
+                icon: mdi:volume-plus
+                color: blue
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_1
+                    befehl: lauter
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: heading
+            heading: 🔊 media_player.funkel_kodi_station_1
+            heading_style: title
+          - type: custom:mushroom-media-player-card
+            entity: media_player.funkel_kodi_station_1
+            name: media_player.funkel_kodi_station_1
+            use_media_info: true
+            show_volume_level: true
+            media_controls:
+              - on_off
+              - play_pause_stop
+              - previous
+              - next
+            volume_controls:
+              - volume_set
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Pause
+                secondary: ''
+                icon: mdi:pause
+                color: amber
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_kodi_station_1
+                    befehl: pause
+              - type: custom:mushroom-template-card
+                primary: Weiter
+                secondary: ''
+                icon: mdi:play
+                color: green
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_kodi_station_1
+                    befehl: weiter
+              - type: custom:mushroom-template-card
+                primary: Leiser
+                secondary: ''
+                icon: mdi:volume-minus
+                color: blue
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_kodi_station_1
+                    befehl: leiser
+              - type: custom:mushroom-template-card
+                primary: Lauter
+                secondary: ''
+                icon: mdi:volume-plus
+                color: blue
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_kodi_station_1
+                    befehl: lauter
+            grid_options:
+              columns: 12
+              rows: auto
+  - title: 2 · Regenbogen · Einzelsteuerung
+    path: szene-2
+    subview: true
+    back_path: /funkel-luna/spielleitung
+    icon: mdi:rainbow
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🌈 2 · Regenbogen · Einzelsteuerung
+            heading_style: title
+          - type: custom:mushroom-title-card
+            title: Spielbereich 2 · Regiepult
+            subtitle: >-
+              Jede Datei unabhängig starten · Fortschritt nicht automatisch
+              ändern
+          - type: custom:mushroom-template-card
+            primary: Zurück zur Spielleitung
+            secondary: Alle Stationen
+            icon: mdi:arrow-left
+            color: purple
+            multiline_secondary: true
+            tap_action:
+              action: navigate
+              navigation_path: /funkel-luna/spielleitung
+          - type: custom:mushroom-template-card
+            primary: Szene neu starten
+            secondary: Stoppt andere Medien und setzt Station
+            icon: mdi:play-circle
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_station_2_starten
+          - type: custom:mushroom-template-card
+            primary: Aktive Station
+            secondary: '{{ states(''input_select.funkel_luna_station'') }}'
+            icon: mdi:map-marker-path
+            color: purple
+            multiline_secondary: true
+            tap_action:
+              action: none
+          - type: custom:mushroom-template-card
+            primary: MEDIEN-STOPP
+            secondary: Alle laufenden Folgen und Player abbrechen
+            icon: mdi:stop-circle
+            color: red
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_stopp_alle
+          - type: custom:mushroom-entity-card
+            entity: input_boolean.funkel_luna_regenbogen_erledigt
+            name: Regenbogen repariert und Fundstück gefunden
+            icon: mdi:check-circle-outline
+            tap_action:
+              action: toggle
+            secondary_info: state
+          - type: custom:mushroom-entity-card
+            entity: input_boolean.funkel_luna_3a_countdown
+            name: Countdown 3A läuft
+            icon: mdi:timer-sand
+            tap_action:
+              action: none
+            secondary_info: state
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🎬 2A · Audio
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 2A · Ganze Clipfolge
+            secondary: Automatisch in richtiger Reihenfolge
+            icon: mdi:playlist-play
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_2a
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip2A_1_Luna.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_2 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_2
+                ordner: Audio
+                datei: Clip2A_1_Luna.mp3
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip2A_2_Funkel.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_2 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_2
+                ordner: Audio
+                datei: Clip2A_2_Funkel.mp3
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip2A_3_Luna.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_2 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_2
+                ordner: Audio
+                datei: Clip2A_3_Luna.mp3
+          - type: heading
+            heading: 🎬 2B · Video
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 2B · Ganze Clipfolge
+            secondary: Einzelclip starten
+            icon: mdi:play-circle
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_2b
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip2B.mp4
+            secondary: Einzeln auf media_player.funkel_audio_station_2 abspielen, keine Folgeaktionen
+            icon: mdi:movie-open-play
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_2
+                ordner: Video
+                datei: Clip2B.mp4
+          - type: custom:mushroom-template-card
+            primary: 'Hinweis: 2B-Fallback'
+            secondary: >-
+              Der Einzelclip löst KEINEN 3A-Start aus. Nur „Ganze Clipfolge“
+              startet nach Videoende den 10-s-Übergang.
+            icon: mdi:information-outline
+            color: amber
+            multiline_secondary: true
+            tap_action:
+              action: none
+      - type: grid
+        cards:
+          - type: heading
+            heading: 💡 Effekte & Player
+            heading_style: title
+          - type: heading
+            heading: 🔊 media_player.funkel_audio_station_2
+            heading_style: title
+          - type: custom:mushroom-media-player-card
+            entity: media_player.funkel_audio_station_2
+            name: media_player.funkel_audio_station_2
+            use_media_info: true
+            show_volume_level: true
+            media_controls:
+              - on_off
+              - play_pause_stop
+              - previous
+              - next
+            volume_controls:
+              - volume_set
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Pause
+                secondary: ''
+                icon: mdi:pause
+                color: amber
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_2
+                    befehl: pause
+              - type: custom:mushroom-template-card
+                primary: Weiter
+                secondary: ''
+                icon: mdi:play
+                color: green
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_2
+                    befehl: weiter
+              - type: custom:mushroom-template-card
+                primary: Leiser
+                secondary: ''
+                icon: mdi:volume-minus
+                color: blue
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_2
+                    befehl: leiser
+              - type: custom:mushroom-template-card
+                primary: Lauter
+                secondary: ''
+                icon: mdi:volume-plus
+                color: blue
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_2
+                    befehl: lauter
+            grid_options:
+              columns: 12
+              rows: auto
+  - title: 3 · Zaubersteine · Einzelsteuerung
+    path: szene-3
+    subview: true
+    back_path: /funkel-luna/spielleitung
+    icon: mdi:diamond-stone
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: 💎 3 · Zaubersteine · Einzelsteuerung
+            heading_style: title
+          - type: custom:mushroom-title-card
+            title: Spielbereich 3 · Regiepult
+            subtitle: >-
+              Jede Datei unabhängig starten · Fortschritt nicht automatisch
+              ändern
+          - type: markdown
+            content: >-
+              ### ✨ Gemeinsamer Ruf
+
+
+              > **„Glitzerstein und Funkellicht, versteck die Zauberkraft jetzt
+              nicht!“**
+
+
+              *Zauberspruch zu den Kartoffel-/Zaubersteinen*
+          - type: custom:mushroom-template-card
+            primary: Zurück zur Spielleitung
+            secondary: Alle Stationen
+            icon: mdi:arrow-left
+            color: purple
+            multiline_secondary: true
+            tap_action:
+              action: navigate
+              navigation_path: /funkel-luna/spielleitung
+          - type: custom:mushroom-template-card
+            primary: Szene neu starten
+            secondary: Stoppt andere Medien und setzt Station
+            icon: mdi:play-circle
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_station_3_starten
+          - type: custom:mushroom-template-card
+            primary: Aktive Station
+            secondary: '{{ states(''input_select.funkel_luna_station'') }}'
+            icon: mdi:map-marker-path
+            color: purple
+            multiline_secondary: true
+            tap_action:
+              action: none
+          - type: custom:mushroom-template-card
+            primary: MEDIEN-STOPP
+            secondary: Alle laufenden Folgen und Player abbrechen
+            icon: mdi:stop-circle
+            color: red
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_stopp_alle
+          - type: custom:mushroom-entity-card
+            entity: input_boolean.funkel_luna_steine_erledigt
+            name: Kartoffelsteine / Zaubersteine gefunden
+            icon: mdi:check-circle-outline
+            tap_action:
+              action: toggle
+            secondary_info: state
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🎬 3A · Audio
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 3A · Ganze Clipfolge
+            secondary: Automatisch in richtiger Reihenfolge
+            icon: mdi:playlist-play
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_3a
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip3A_1_Funkel.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_3 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_3
+                ordner: Audio
+                datei: Clip3A_1_Funkel.mp3
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip3A_2_Luna.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_3 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_3
+                ordner: Audio
+                datei: Clip3A_2_Luna.mp3
+          - type: heading
+            heading: 🎬 3B · Audio
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 3B · Ganze Clipfolge
+            secondary: Einzelclip starten
+            icon: mdi:play-circle
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_3b
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip3B_1_Funkel.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_3 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_3
+                ordner: Audio
+                datei: Clip3B_1_Funkel.mp3
+      - type: grid
+        cards:
+          - type: heading
+            heading: 💡 Effekte & Player
+            heading_style: title
+          - type: custom:mushroom-light-card
+            entity: light.funkel_effekt_station_3
+            name: 💎 LED · Spielbereich 3
+            icon: mdi:led-strip-variant
+            use_light_color: true
+            show_brightness_control: true
+            show_color_control: true
+            collapsible_controls: false
+            tap_action:
+              action: more-info
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            entity: light.funkel_effekt_station_3
+            primary: Lichtszene / Geräteeinstellungen öffnen
+            secondary: Farbe, Helligkeit und ggf. voreingestellte Effekte
+            icon: mdi:palette
+            color: purple
+            multiline_secondary: true
+            tap_action:
+              action: more-info
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: RGB-Licht · aktueller Status
+            secondary: '{{ ''Ein'' if is_state(''light.funkel_effekt_station_3'',''on'') else ''Aus'' }}'
+            icon: mdi:lightbulb
+            color: '{{ ''amber'' if is_state(''light.funkel_effekt_station_3'',''on'') else ''grey'' }}'
+            multiline_secondary: true
+            tap_action:
+              action: none
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Regenbogen-Zauber AN
+                secondary: Rainbow B · 100 % Helligkeit
+                icon: mdi:rainbow
+                color: amber
+                tap_action:
+                  action: perform-action
+                  perform_action: light.turn_on
+                  target:
+                    entity_id: light.funkel_effekt_station_3
+                  data:
+                    brightness_pct: 100
+                    effect: Rainbow B
+              - type: custom:mushroom-template-card
+                primary: Licht AUS
+                secondary: Keine Farbe überschreiben
+                icon: mdi:lightbulb-off
+                color: grey
+                tap_action:
+                  action: perform-action
+                  perform_action: light.turn_off
+                  target:
+                    entity_id: light.funkel_effekt_station_3
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: heading
+            heading: 🔊 media_player.funkel_audio_station_3
+            heading_style: title
+          - type: custom:mushroom-media-player-card
+            entity: media_player.funkel_audio_station_3
+            name: media_player.funkel_audio_station_3
+            use_media_info: true
+            show_volume_level: true
+            media_controls:
+              - on_off
+              - play_pause_stop
+              - previous
+              - next
+            volume_controls:
+              - volume_set
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Pause
+                secondary: ''
+                icon: mdi:pause
+                color: amber
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_3
+                    befehl: pause
+              - type: custom:mushroom-template-card
+                primary: Weiter
+                secondary: ''
+                icon: mdi:play
+                color: green
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_3
+                    befehl: weiter
+              - type: custom:mushroom-template-card
+                primary: Leiser
+                secondary: ''
+                icon: mdi:volume-minus
+                color: blue
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_3
+                    befehl: leiser
+              - type: custom:mushroom-template-card
+                primary: Lauter
+                secondary: ''
+                icon: mdi:volume-plus
+                color: blue
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_3
+                    befehl: lauter
+            grid_options:
+              columns: 12
+              rows: auto
+  - title: 4 · Lavafeld · Einzelsteuerung
+    path: szene-4
+    subview: true
+    back_path: /funkel-luna/spielleitung
+    icon: mdi:volcano
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🌋 4 · Lavafeld · Einzelsteuerung
+            heading_style: title
+          - type: custom:mushroom-title-card
+            title: Spielbereich 4 · Regiepult
+            subtitle: >-
+              Jede Datei unabhängig starten · Fortschritt nicht automatisch
+              ändern
+          - type: markdown
+            content: >-
+              ### ✨ Gemeinsamer Ruf
+
+
+              > **„Blubber, blubber, Drachenmut, unser Vulkan, der wird jetzt
+              gut!“**
+
+
+              *Zauberspruch am Lavafeld*
+          - type: custom:mushroom-template-card
+            primary: Zurück zur Spielleitung
+            secondary: Alle Stationen
+            icon: mdi:arrow-left
+            color: purple
+            multiline_secondary: true
+            tap_action:
+              action: navigate
+              navigation_path: /funkel-luna/spielleitung
+          - type: custom:mushroom-template-card
+            primary: Szene neu starten
+            secondary: Stoppt andere Medien und setzt Station
+            icon: mdi:play-circle
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_station_4_starten
+          - type: custom:mushroom-template-card
+            primary: Aktive Station
+            secondary: '{{ states(''input_select.funkel_luna_station'') }}'
+            icon: mdi:map-marker-path
+            color: purple
+            multiline_secondary: true
+            tap_action:
+              action: none
+          - type: custom:mushroom-template-card
+            primary: MEDIEN-STOPP
+            secondary: Alle laufenden Folgen und Player abbrechen
+            icon: mdi:stop-circle
+            color: red
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_stopp_alle
+          - type: custom:mushroom-entity-card
+            entity: input_boolean.funkel_luna_lava_erledigt
+            name: Lavafeld überquert
+            icon: mdi:check-circle-outline
+            tap_action:
+              action: toggle
+            secondary_info: state
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🎬 4A · Audio
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 4A · Ganze Clipfolge
+            secondary: Automatisch in richtiger Reihenfolge
+            icon: mdi:playlist-play
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_4a
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip4A_1_Funkel.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_4 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_4
+                ordner: Audio
+                datei: Clip4A_1_Funkel.mp3
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip4A_2_Luna.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_4 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_4
+                ordner: Audio
+                datei: Clip4A_2_Luna.mp3
+          - type: heading
+            heading: 🎬 4B · Audio
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 4B · Ganze Clipfolge
+            secondary: Einzelclip starten
+            icon: mdi:play-circle
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_4b
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip4B_1_Funkel.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_4 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_4
+                ordner: Audio
+                datei: Clip4B_1_Funkel.mp3
+      - type: grid
+        cards:
+          - type: heading
+            heading: 💡 Effekte & Player
+            heading_style: title
+          - type: custom:mushroom-light-card
+            entity: light.funkel_effekt_station_4
+            name: 🌋 LED · Lavafeld
+            icon: mdi:led-strip-variant
+            use_light_color: true
+            show_brightness_control: true
+            show_color_control: true
+            collapsible_controls: false
+            tap_action:
+              action: more-info
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            entity: light.funkel_effekt_station_4
+            primary: Lichtszene / Geräteeinstellungen öffnen
+            secondary: Farbe, Helligkeit und ggf. voreingestellte Effekte
+            icon: mdi:palette
+            color: purple
+            multiline_secondary: true
+            tap_action:
+              action: more-info
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: 🪟 Beide Rollos schließen
+            secondary: 'Notfall: Vorhang für Lavafeld vorbereiten'
+            icon: mdi:blinds-closed
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_rollos_station_4_schliessen
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: tile
+            entity: cover.funkel_rollo_station_4_a
+            name: Rollo 2
+            features:
+              - type: cover-open-close
+            grid_options:
+              columns: 6
+              rows: auto
+          - type: tile
+            entity: cover.funkel_rollo_station_4_b
+            name: Rollo 1
+            features:
+              - type: cover-open-close
+            grid_options:
+              columns: 6
+              rows: auto
+          - type: custom:mushroom-template-card
+            primary: RGB-Licht · aktueller Status
+            secondary: '{{ ''Ein'' if is_state(''light.funkel_effekt_station_4'',''on'') else ''Aus'' }}'
+            icon: mdi:lightbulb
+            color: '{{ ''amber'' if is_state(''light.funkel_effekt_station_4'',''on'') else ''grey'' }}'
+            multiline_secondary: true
+            tap_action:
+              action: none
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Feuerdrache AN
+                secondary: Fire-Breathing Dragon · 100 %
+                icon: mdi:fire
+                color: amber
+                tap_action:
+                  action: perform-action
+                  perform_action: light.turn_on
+                  target:
+                    entity_id: light.funkel_effekt_station_4
+                  data:
+                    effect: Fire-Breathing Dragon
+                    brightness_pct: 100
+              - type: custom:mushroom-template-card
+                primary: Licht AUS
+                secondary: Keine Farbe überschreiben
+                icon: mdi:lightbulb-off
+                color: grey
+                tap_action:
+                  action: perform-action
+                  perform_action: light.turn_off
+                  target:
+                    entity_id: light.funkel_effekt_station_4
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: heading
+            heading: 🔊 media_player.funkel_audio_station_4
+            heading_style: title
+          - type: custom:mushroom-media-player-card
+            entity: media_player.funkel_audio_station_4
+            name: media_player.funkel_audio_station_4
+            use_media_info: true
+            show_volume_level: true
+            media_controls:
+              - on_off
+              - play_pause_stop
+              - previous
+              - next
+            volume_controls:
+              - volume_set
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Pause
+                secondary: ''
+                icon: mdi:pause
+                color: amber
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_4
+                    befehl: pause
+              - type: custom:mushroom-template-card
+                primary: Weiter
+                secondary: ''
+                icon: mdi:play
+                color: green
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_4
+                    befehl: weiter
+              - type: custom:mushroom-template-card
+                primary: Leiser
+                secondary: ''
+                icon: mdi:volume-minus
+                color: blue
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_4
+                    befehl: leiser
+              - type: custom:mushroom-template-card
+                primary: Lauter
+                secondary: ''
+                icon: mdi:volume-plus
+                color: blue
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_4
+                    befehl: lauter
+            grid_options:
+              columns: 12
+              rows: auto
+  - title: 5 · Schlüssel & Ei · Einzelsteuerung
+    path: szene-5
+    subview: true
+    back_path: /funkel-luna/spielleitung
+    icon: mdi:egg
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🐉 5 · Schlüssel & Ei · Einzelsteuerung
+            heading_style: title
+          - type: custom:mushroom-title-card
+            title: Spielbereich 5 · Regiepult
+            subtitle: >-
+              Jede Datei unabhängig starten · Fortschritt nicht automatisch
+              ändern
+          - type: markdown
+            content: >-
+              ### ✨ Gemeinsamer Ruf
+
+
+              > **„Drachenei, erwache sacht, bring zurück die Zaubermacht!“**
+
+
+              *Der bestätigte Spruch gehört zum Drachenei (5C). Für den
+              Drachenschlüssel ist kein weiterer gemeinsamer Spruch hinterlegt.*
+          - type: custom:mushroom-template-card
+            primary: Zurück zur Spielleitung
+            secondary: Alle Stationen
+            icon: mdi:arrow-left
+            color: purple
+            multiline_secondary: true
+            tap_action:
+              action: navigate
+              navigation_path: /funkel-luna/spielleitung
+          - type: custom:mushroom-template-card
+            primary: Szene neu starten
+            secondary: Stoppt andere Medien und setzt Station
+            icon: mdi:play-circle
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_station_5_starten
+          - type: custom:mushroom-template-card
+            primary: Aktive Station
+            secondary: '{{ states(''input_select.funkel_luna_station'') }}'
+            icon: mdi:map-marker-path
+            color: purple
+            multiline_secondary: true
+            tap_action:
+              action: none
+          - type: custom:mushroom-template-card
+            primary: MEDIEN-STOPP
+            secondary: Alle laufenden Folgen und Player abbrechen
+            icon: mdi:stop-circle
+            color: red
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_stopp_alle
+          - type: custom:mushroom-entity-card
+            entity: input_boolean.funkel_luna_schluessel_erledigt
+            name: Drachenschlüssel zusammengesetzt
+            icon: mdi:check-circle-outline
+            tap_action:
+              action: toggle
+            secondary_info: state
+          - type: custom:mushroom-entity-card
+            entity: input_boolean.funkel_luna_drachenei_erledigt
+            name: Drachenei gefunden
+            icon: mdi:check-circle-outline
+            tap_action:
+              action: toggle
+            secondary_info: state
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🎬 5A · Audio
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 5A_2 · Nach Szenenstart
+            secondary: >-
+              Spielt nur Clip5A_2; 5A_1 gehört zum automatischen Übergang nach
+              4B
+            icon: mdi:playlist-play
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_5a
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip5A_1_Luna.mp3
+            secondary: >-
+              Fallback: automatisch 3 Sekunden nach Ende von 4B; hier bei Bedarf
+              einzeln abspielbar
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_5
+                ordner: Audio
+                datei: Clip5A_1_Luna.mp3
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip5A_2_Luna.mp3
+            secondary: >-
+              Beim manuellen Start von Station 5; hier bei Bedarf einzeln
+              abspielbar
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_5
+                ordner: Audio
+                datei: Clip5A_2_Luna.mp3
+          - type: heading
+            heading: 🎬 5B · Audio
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 5B · Ganze Clipfolge
+            secondary: Automatisch in richtiger Reihenfolge
+            icon: mdi:playlist-play
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_5b
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip5B_1_Funkel.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_5 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_5
+                ordner: Audio
+                datei: Clip5B_1_Funkel.mp3
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip5B_2_Luna.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_5 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_5
+                ordner: Audio
+                datei: Clip5B_2_Luna.mp3
+          - type: heading
+            heading: 🎬 5C · Audio
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 5C · Ganze Clipfolge
+            secondary: Automatisch in richtiger Reihenfolge
+            icon: mdi:playlist-play
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_5c
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip5C_1_Luna.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_5 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_5
+                ordner: Audio
+                datei: Clip5C_1_Luna.mp3
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip5C_2_Luna.mp3
+            secondary: Einzeln auf media_player.funkel_audio_station_5 abspielen, keine Folgeaktionen
+            icon: mdi:music-note
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_audio_station_5
+                ordner: Audio
+                datei: Clip5C_2_Luna.mp3
+      - type: grid
+        cards:
+          - type: heading
+            heading: 💡 Effekte & Player
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: Drachenei-Licht
+            secondary: >-
+              Per vorhandener Fernbedienung bedienen. Keine HA-Entity
+              hinterlegt.
+            icon: mdi:egg
+            color: amber
+            multiline_secondary: true
+            tap_action:
+              action: none
+          - type: heading
+            heading: 🔊 media_player.funkel_audio_station_5
+            heading_style: title
+          - type: custom:mushroom-media-player-card
+            entity: media_player.funkel_audio_station_5
+            name: media_player.funkel_audio_station_5
+            use_media_info: true
+            show_volume_level: true
+            media_controls:
+              - on_off
+              - play_pause_stop
+              - previous
+              - next
+            volume_controls:
+              - volume_set
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Pause
+                secondary: ''
+                icon: mdi:pause
+                color: amber
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_5
+                    befehl: pause
+              - type: custom:mushroom-template-card
+                primary: Weiter
+                secondary: ''
+                icon: mdi:play
+                color: green
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_5
+                    befehl: weiter
+              - type: custom:mushroom-template-card
+                primary: Leiser
+                secondary: ''
+                icon: mdi:volume-minus
+                color: blue
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_5
+                    befehl: leiser
+              - type: custom:mushroom-template-card
+                primary: Lauter
+                secondary: ''
+                icon: mdi:volume-plus
+                color: blue
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_audio_station_5
+                    befehl: lauter
+            grid_options:
+              columns: 12
+              rows: auto
+  - title: 6 · Schatz · Einzelsteuerung
+    path: szene-6
+    subview: true
+    back_path: /funkel-luna/spielleitung
+    icon: mdi:treasure-chest
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🎁 6 · Schatz · Einzelsteuerung
+            heading_style: title
+          - type: custom:mushroom-title-card
+            title: Spielbereich 6 · Regiepult
+            subtitle: >-
+              Jede Datei unabhängig starten · Fortschritt nicht automatisch
+              ändern
+          - type: markdown
+            content: >-
+              ### ✨ Schatzrätsel · zum Vorlesen
+
+
+              > **„Ein Schrank in Pink, so wunderschön, dort könnt ihr kleine
+              Drachen seh'n. Doch hinter Türen sucht ihr nicht, die Schublade
+              verbirgt das Licht. Zieht sie auf, schaut vorsichtig rein, dort
+              warten eure Wächterlein!“**
+
+
+              *Dieses Rätsel stammt aus Clip 6A und ist kein festgelegter
+              gemeinsamer Zauberruf.*
+          - type: custom:mushroom-template-card
+            primary: Zurück zur Spielleitung
+            secondary: Alle Stationen
+            icon: mdi:arrow-left
+            color: purple
+            multiline_secondary: true
+            tap_action:
+              action: navigate
+              navigation_path: /funkel-luna/spielleitung
+          - type: custom:mushroom-template-card
+            primary: Szene neu starten
+            secondary: Stoppt andere Medien und setzt Station
+            icon: mdi:play-circle
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_station_6_starten
+          - type: custom:mushroom-template-card
+            primary: Aktive Station
+            secondary: '{{ states(''input_select.funkel_luna_station'') }}'
+            icon: mdi:map-marker-path
+            color: purple
+            multiline_secondary: true
+            tap_action:
+              action: none
+          - type: custom:mushroom-template-card
+            primary: MEDIEN-STOPP
+            secondary: Alle laufenden Folgen und Player abbrechen
+            icon: mdi:stop-circle
+            color: red
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_stopp_alle
+          - type: custom:mushroom-template-card
+            primary: Schatz manuell freigeben
+            secondary: Nur im Notfall · mit Bestätigung
+            icon: mdi:treasure-chest
+            color: amber
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_schatz_freigeben
+              confirmation:
+                text: Den Schatz wirklich freigeben?
+            grid_options:
+              columns: 12
+              rows: auto
+          - type: custom:mushroom-entity-card
+            entity: input_boolean.funkel_luna_finale_erledigt
+            name: Schatz gefunden / Finale geschafft
+            icon: mdi:check-circle-outline
+            tap_action:
+              action: toggle
+            secondary_info: state
+      - type: grid
+        cards:
+          - type: heading
+            heading: 🎬 6A · Video
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 6A → 6B_1 · Automatische Folge
+            secondary: Kodi öffnet, danach laufen 6A und 6B_1 automatisch hintereinander
+            icon: mdi:play-circle
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_6a
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip6A.mp4
+            secondary: Einzelclip (Kodi-App wird vorher per ADB aktiviert)
+            icon: mdi:movie-open-play
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_kodi_station_6
+                ordner: Video
+                datei: Clip6A.mp4
+          - type: heading
+            heading: 🎬 6B_1 · Video
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 6B_1 · Ganze Clipfolge
+            secondary: >-
+              Fallback: 6B_1 separat starten; markiert Schatzfreigabe erst nach
+              echtem Dateiende
+            icon: mdi:play-circle
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_6b_1
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip6B_1.mp4
+            secondary: Einzelclip (Kodi-App wird vorher per ADB aktiviert)
+            icon: mdi:movie-open-play
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_kodi_station_6
+                ordner: Video
+                datei: Clip6B_1.mp4
+          - type: custom:mushroom-template-card
+            primary: Schatzfund als Erfolg bestätigen
+            secondary: >-
+              6B_2 startet nicht automatisch nach 6B_1, sondern nur mit dem
+              Schatz-Erfolgshaken (oder bewusst als Fallback)
+            icon: mdi:hand-back-left
+            color: amber
+            multiline_secondary: true
+            tap_action:
+              action: none
+          - type: heading
+            heading: 🎬 6B_2 · Video
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 6B_2 · Ganze Clipfolge
+            secondary: Fire TV wird per ADB aufgeweckt, Kodi geöffnet, danach Video
+            icon: mdi:play-circle
+            color: green
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_6b_2
+          - type: custom:mushroom-template-card
+            primary: ▶ Clip6B_2.mp4
+            secondary: Einzelclip (Kodi-App wird vorher per ADB aktiviert)
+            icon: mdi:movie-open-play
+            color: blue
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_einzelclip
+              data:
+                player: media_player.funkel_kodi_station_6
+                ordner: Video
+                datei: Clip6B_2.mp4
+      - type: grid
+        cards:
+          - type: heading
+            heading: 💡 Effekte & Player
+            heading_style: title
+          - type: custom:mushroom-template-card
+            primary: 📺 Kodi auf dem Fire TV öffnen (ADB)
+            secondary: Fire TV aufwecken + Kodi per ADB öffnen · ohne Videostart
+            icon: mdi:kodi
+            color: amber
+            multiline_secondary: true
+            tap_action:
+              action: perform-action
+              perform_action: script.funkel_luna_kodi_vorbereiten
+              data:
+                geraet: Spielbereich 6
+          - type: custom:mushroom-entity-card
+            entity: media_player.funkel_tv_station_6
+            name: Fire TV · ADB-App/Quelle
+            icon: mdi:television-play
+            tap_action:
+              action: more-info
+          - type: custom:mushroom-template-card
+            primary: Kodi als Quelle aktiv?
+            secondary: >-
+              {{ state_attr('media_player.funkel_tv_station_6', 'source') |
+              default('Quelle unbekannt', true) }}
+            icon: mdi:check-circle-outline
+            color: >-
+              {{ 'green' if (state_attr('media_player.funkel_tv_station_6','source') |
+              default('',true) | lower) in ['kodi','org.xbmc.kodi'] else 'amber'
+              }}
+            tap_action:
+              action: none
+          - type: heading
+            heading: 🔊 media_player.funkel_kodi_station_6
+            heading_style: title
+          - type: custom:mushroom-media-player-card
+            entity: media_player.funkel_kodi_station_6
+            name: media_player.funkel_kodi_station_6
+            use_media_info: true
+            show_volume_level: true
+            media_controls:
+              - on_off
+              - play_pause_stop
+              - previous
+              - next
+            volume_controls:
+              - volume_set
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Pause
+                secondary: ''
+                icon: mdi:pause
+                color: amber
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_kodi_station_6
+                    befehl: pause
+              - type: custom:mushroom-template-card
+                primary: Weiter
+                secondary: ''
+                icon: mdi:play
+                color: green
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_kodi_station_6
+                    befehl: weiter
+              - type: custom:mushroom-template-card
+                primary: Leiser
+                secondary: ''
+                icon: mdi:volume-minus
+                color: blue
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_kodi_station_6
+                    befehl: leiser
+              - type: custom:mushroom-template-card
+                primary: Lauter
+                secondary: ''
+                icon: mdi:volume-plus
+                color: blue
+                multiline_secondary: true
+                tap_action:
+                  action: perform-action
+                  perform_action: script.funkel_luna_player_steuern
+                  data:
+                    player: media_player.funkel_kodi_station_6
+                    befehl: lauter
+            grid_options:
+              columns: 12
+              rows: auto
