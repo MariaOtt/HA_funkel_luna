@@ -1,0 +1,20 @@
+# Lokale Arbeitsumgebungen, temporäre Dateien und Zugangsdaten
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+secrets.yaml
+**/secrets.yaml
+*.log
+*.db
+*.db-shm
+*.db-wal
+dist/
+# Audio, Video und References werden bewusst nicht ignoriert.
