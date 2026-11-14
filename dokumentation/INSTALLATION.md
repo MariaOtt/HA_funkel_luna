@@ -22,7 +22,7 @@ Die externe Hardware ist absichtlich anonymisiert. **Ersetze alle Vorkommen** in
 | `cover.funkel_rollo_station_4_a` | Rollo A (Station 4) |
 | `cover.funkel_rollo_station_4_b` | Rollo B (Station 4) |
 
-Die internen `funkeI_luna`-Helfer und Skripte (Schreibweise: `funkel_luna`) sind Bestandteile des Packages und sollen unverändert bleiben. Die Stellen `Medienzone_1` und `Spielbereich 6` im Skript zur Kodi-Vorbereitung sind interne Auswahlwerte und müssen übereinstimmen.
+Die internen `funkel_luna`-Helfer und Skripte sind Bestandteile des Packages und sollen unverändert bleiben. Die Stellen `Medienzone_1` und `Spielbereich 6` im Skript zur Kodi-Vorbereitung sind interne Auswahlwerte und müssen übereinstimmen.
 
 ## 3. Package übernehmen
 ```yaml
