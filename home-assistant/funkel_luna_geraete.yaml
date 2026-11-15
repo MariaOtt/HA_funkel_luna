@@ -194,7 +194,7 @@ template:
       - name: funkel_rollo_station_4_a
         unique_id: ha_funkel_luna_funkel_rollo_station_4_a
         device_class: shutter
-        state: "{{ 'closed' if is_state('input_boolean.funkel_demo_rollo_4_a', 'on') else 'open' if is_state('input_boolean.funkel_luna_browser_test', 'on') else states('cover.beispiel_rollo_station_4_a') }}"
+        state: "{{ ('closed' if is_state('input_boolean.funkel_demo_rollo_4_a', 'on') else 'open') if is_state('input_boolean.funkel_luna_browser_test', 'on') else states('cover.beispiel_rollo_station_4_a') }}"
         close_cover:
           - if:
               - condition: state
@@ -224,7 +224,7 @@ template:
       - name: funkel_rollo_station_4_b
         unique_id: ha_funkel_luna_funkel_rollo_station_4_b
         device_class: shutter
-        state: "{{ 'closed' if is_state('input_boolean.funkel_demo_rollo_4_b', 'on') else 'open' if is_state('input_boolean.funkel_luna_browser_test', 'on') else states('cover.beispiel_rollo_station_4_b') }}"
+        state: "{{ ('closed' if is_state('input_boolean.funkel_demo_rollo_4_b', 'on') else 'open') if is_state('input_boolean.funkel_luna_browser_test', 'on') else states('cover.beispiel_rollo_station_4_b') }}"
         close_cover:
           - if:
               - condition: state
