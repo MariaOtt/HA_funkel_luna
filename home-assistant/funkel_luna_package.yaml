@@ -66,6 +66,14 @@ script:
             - Medienzone_1
             - Spielbereich 6
     sequence:
+    # Im Browser-Testmodus laufen Videos auf dem Browser-Mod-Player.
+    # Die Fire-TV-/Kodi-App muss deshalb nicht vorbereitet werden.
+    - if:
+      - condition: state
+        entity_id: input_boolean.funkel_luna_browser_test
+        state: "on"
+      then:
+      - stop: "Browser-Testmodus: Fire-TV-/Kodi-Vorbereitung übersprungen"
     - condition: template
       value_template: '{{ geraet in [''Medienzone_1'', ''Spielbereich 6''] }}'
     - variables:
