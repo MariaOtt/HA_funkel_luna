@@ -27,10 +27,10 @@ EXPECTED_COVERS = {
     "cover.funkel_rollo_station_4_a",
     "cover.funkel_rollo_station_4_b",
 }
-ENTITY_PATTERN = re.compile(r"\\b(?:media_player|light|cover)\\.funkel_[a-z0-9_]+\\b")
+ENTITY_PATTERN = re.compile(r"\b(?:media_player|light|cover)\.funkel_[a-z0-9_]+\b")
 FORBIDDEN = re.compile(
     r"(?i)(josefine|karolina|homematicip_local|00165d89bbaec0|nrl_|"
-    r"tvkueche|tvwohnzimmer|chatgpt\\.com/share)"
+    r"tvkueche|tvwohnzimmer|chatgpt\.com/share)"
 )
 
 
