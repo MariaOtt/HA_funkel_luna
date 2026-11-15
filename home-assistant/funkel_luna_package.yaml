@@ -1,0 +1,1738 @@
+# Funkel & Luna · Haupt-Package 4.17
+# Ein Package: Skripte, Helfer, Aufgaben-Automationen und Fortschritts-/Versionssensor.
+input_select:
+  funkel_luna_station:
+    name: Funkel & Luna · Station
+    icon: mdi:map-marker-path
+    options:
+    - Bereit
+    - 1 · Drachennest
+    - 2 · Regenbogen
+    - 3 · Zaubersteine
+    - 4 · Lavafeld
+    - 5 · Schlüssel & Ei
+    - 6 · Schatz
+    - Geschafft
+input_boolean:
+  funkel_luna_spiel_aktiv:
+    name: Funkel & Luna · Spiel aktiv
+    icon: mdi:play-circle
+  funkel_luna_schatz_freigegeben:
+    name: Funkel & Luna · Schatz freigegeben
+    icon: mdi:treasure-chest
+  funkel_luna_3a_countdown:
+    name: Funkel & Luna · 3A startet nach 10 Sekunden
+    icon: mdi:timer-sand
+  funkel_luna_nest_erledigt:
+    name: Funkel & Luna · Nest und Hilferuf erledigt
+    icon: mdi:check-decagram
+  funkel_luna_regenbogen_erledigt:
+    name: Funkel & Luna · Regenbogen repariert und Fundstück gefunden
+    icon: mdi:check-decagram
+  funkel_luna_steine_erledigt:
+    name: Funkel & Luna · Kartoffelsteine / Zaubersteine gefunden
+    icon: mdi:check-decagram
+  funkel_luna_lava_erledigt:
+    name: Funkel & Luna · Lavafeld überquert
+    icon: mdi:check-decagram
+  funkel_luna_schluessel_erledigt:
+    name: Funkel & Luna · Drachenschlüssel zusammengesetzt
+    icon: mdi:check-decagram
+  funkel_luna_drachenei_erledigt:
+    name: Funkel & Luna · Drachenei gefunden
+    icon: mdi:check-decagram
+  funkel_luna_finale_erledigt:
+    name: Funkel & Luna · Schatz gefunden / Finale geschafft
+    icon: mdi:check-decagram
+  funkel_luna_5a1_abgeschlossen:
+    name: Funkel & Luna · Übergangsansage im Spielbereich 5 (5A_1) beendet
+    icon: mdi:check-circle-outline
+  funkel_luna_6b1_abgeschlossen:
+    name: Funkel & Luna · Finale 6B_1 beendet / Schatzfund freigeben
+    icon: mdi:check-circle-outline
+script:
+  funkel_luna_kodi_vorbereiten:
+    alias: Funkel & Luna · Kodi vor Video auf Fire TV öffnen (ADB)
+    icon: mdi:kodi
+    mode: parallel
+    max: 3
+    fields:
+      geraet:
+        name: Fire TV
+        required: true
+        selector:
+          select:
+            options:
+            - Medienzone_1
+            - Spielbereich 6
+    sequence:
+    - condition: template
+      value_template: '{{ geraet in [''Medienzone_1'', ''Spielbereich 6''] }}'
+    - variables:
+        adb_player: '{{ ''media_player.funkel_tv_station_1'' if geraet == ''Medienzone_1'' else ''media_player.funkel_tv_station_6'' }}'
+        kodi_player: '{{ ''media_player.funkel_kodi_station_1'' if geraet == ''Medienzone_1'' else ''media_player.funkel_kodi_station_6'' }}'
+    - alias: 'ADB: Fire TV vor dem Quellenwechsel einschalten / aufwecken'
+      action: media_player.turn_on
+      target:
+        entity_id: '{{ adb_player }}'
+      continue_on_error: true
+    - alias: 'ADB: auf erreichbaren Fire TV warten'
+      wait_template: '{{ states(adb_player) not in [''unavailable'', ''unknown''] }}'
+      timeout: 00:00:20
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Fire TV nicht erreichbar
+          message: ADB-Player {{ adb_player }} ist nicht erreichbar. Kodi und Video wurden nicht gestartet.
+      - stop: ADB-Player nach Aufweckversuch nicht erreichbar.
+        error: true
+    - alias: Fire TV nach dem Aufwecken kurz stabilisieren lassen
+      delay: 00:00:03
+    - alias: 'ADB: Kodi als App/Quelle auswählen'
+      action: media_player.select_source
+      target:
+        entity_id: '{{ adb_player }}'
+      data:
+        source: Kodi
+    - alias: 'ADB: Warten, bis Kodi wirklich als laufende App gemeldet wird'
+      wait_template: '{{ (state_attr(adb_player, ''source'') | default('''', true) | lower) in [''kodi'', ''org.xbmc.kodi''] or (state_attr(adb_player,
+        ''app_id'') | default('''', true)) == ''org.xbmc.kodi'' }}'
+      timeout: 00:00:25
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Kodi nicht im Vordergrund
+          message: Kodi wurde auf {{ adb_player }} nicht als aktive App bestätigt. Video wird nicht gestartet, damit nicht nur Ton läuft. Prüfe 
+            ADB-Quelle Kodi und starte erneut.
+      - stop: ADB meldet Kodi nicht als aktive App. Video-Start aus Sicherheitsgründen abgebrochen.
+        error: true
+    - alias: Kodi-Integration muss bereit/erreichbar sein
+      wait_template: '{{ states(kodi_player) not in [''unknown'', ''unavailable'', ''off''] }}'
+      timeout: 00:00:25
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Kodi-Player noch nicht bereit
+          message: Auf {{ kodi_player }} ist Kodi noch nicht erreichbar. Die Videowiedergabe wurde nicht gestartet. Prüfe den Kodi-Dienst bzw. 
+            das Fire TV.
+      - stop: Kodi-Player nicht bereit. Videostart abgebrochen.
+        error: true
+    - alias: Kodi die Anzeige im Vordergrund aufbauen lassen
+      delay: 00:00:02
+  funkel_luna_1a:
+    alias: Funkel & Luna · 1A (3 Dateien)
+    icon: mdi:volume-high
+    mode: restart
+    sequence:
+    - alias: Audio-Lautstärke für diese Szene auf 80 Prozent einstellen
+      action: media_player.volume_set
+      target:
+        entity_id: media_player.funkel_audio_station_1
+      data:
+        volume_level: 0.8
+      continue_on_error: true
+    - alias: 'Abspielen: Clip1A_1_Funkel.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_1
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip1A_1_Funkel.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_1'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip1A_1_Funkel.mp3 auf media_player.funkel_audio_station_1: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_1'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip1A_1_Funkel.mp3 auf media_player.funkel_audio_station_1: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: 'Abspielen: Clip1A_2_Luna.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_1
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip1A_2_Luna.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_1'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip1A_2_Luna.mp3 auf media_player.funkel_audio_station_1: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz angehalten.
+            Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_1'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip1A_2_Luna.mp3 auf media_player.funkel_audio_station_1: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: 'Abspielen: Clip1A_3_Funkel.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_1
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip1A_3_Funkel.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_1'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip1A_3_Funkel.mp3 auf media_player.funkel_audio_station_1: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_1'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip1A_3_Funkel.mp3 auf media_player.funkel_audio_station_1: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: Nach dem bestätigten Ende von 1A automatisch die beiden Videos 1B auf dem Medienzone 1n-Kodi starten
+      action: script.turn_on
+      target:
+        entity_id: script.funkel_luna_1b
+  funkel_luna_1b:
+    alias: Funkel & Luna · 1B (2 Dateien)
+    icon: mdi:movie-play
+    mode: restart
+    sequence:
+    - alias: Vor dem Video die Kodi-App auf Fire TV Medienzone 1 öffnen
+      action: script.funkel_luna_kodi_vorbereiten
+      data:
+        geraet: Medienzone_1
+    - alias: 'Abspielen: Clip1B_1.mp4'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_kodi_station_1
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Video/Clip1B_1.mp4
+        media_content_type: video/mp4
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_kodi_station_1'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip1B_1.mp4 auf media_player.funkel_kodi_station_1: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_kodi_station_1'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip1B_1.mp4 auf media_player.funkel_kodi_station_1: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: 'Abspielen: Clip1B_2.mp4'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_kodi_station_1
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Video/Clip1B_2.mp4
+        media_content_type: video/mp4
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_kodi_station_1'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip1B_2.mp4 auf media_player.funkel_kodi_station_1: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_kodi_station_1'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip1B_2.mp4 auf media_player.funkel_kodi_station_1: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+  funkel_luna_2a:
+    alias: Funkel & Luna · 2A (3 Dateien)
+    icon: mdi:volume-high
+    mode: restart
+    sequence:
+    - alias: 'Abspielen: Clip2A_1_Luna.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_2
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip2A_1_Luna.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_2'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip2A_1_Luna.mp3 auf media_player.funkel_audio_station_2: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_2'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip2A_1_Luna.mp3 auf media_player.funkel_audio_station_2: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: 'Abspielen: Clip2A_2_Funkel.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_2
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip2A_2_Funkel.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_2'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip2A_2_Funkel.mp3 auf media_player.funkel_audio_station_2: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_2'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip2A_2_Funkel.mp3 auf media_player.funkel_audio_station_2: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte
+            manuell steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: 'Abspielen: Clip2A_3_Luna.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_2
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip2A_3_Luna.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_2'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip2A_3_Luna.mp3 auf media_player.funkel_audio_station_2: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_2'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip2A_3_Luna.mp3 auf media_player.funkel_audio_station_2: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+  funkel_luna_2b:
+    alias: Funkel & Luna · 2B (1 Datei)
+    icon: mdi:movie-play
+    mode: restart
+    sequence:
+    - alias: 'Abspielen: Clip2B.mp4'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_2
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Video/Clip2B.mp4
+        media_content_type: video/mp4
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_2'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip2B.mp4 auf media_player.funkel_audio_station_2: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz angehalten.
+            Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_2'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip2B.mp4 auf media_player.funkel_audio_station_2: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: 10-Sekunden-Hinweis für Spielleitung
+      action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.funkel_luna_3a_countdown
+    - alias: Kinder haben Zeit, den nächsten Raum zu entdecken
+      delay:
+        seconds: 10
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_3a_countdown
+    - condition: template
+      value_template: '{{ not is_state(''script.funkel_luna_3a'',''on'') }}'
+    - alias: 'Ausnahme: 3A automatisch aus Spielbereich 3 starten, ohne den Stationsstatus zu ändern'
+      action: script.turn_on
+      target:
+        entity_id: script.funkel_luna_3a
+  funkel_luna_3a:
+    alias: Funkel & Luna · 3A (2 Dateien)
+    icon: mdi:volume-high
+    mode: restart
+    sequence:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_3a_countdown
+    - alias: Audio-Lautstärke für diese Szene auf 80 Prozent einstellen
+      action: media_player.volume_set
+      target:
+        entity_id: media_player.funkel_audio_station_3
+      data:
+        volume_level: 0.8
+      continue_on_error: true
+    - alias: 'Abspielen: Clip3A_1_Funkel.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_3
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip3A_1_Funkel.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_3'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip3A_1_Funkel.mp3 auf media_player.funkel_audio_station_3: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_3'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip3A_1_Funkel.mp3 auf media_player.funkel_audio_station_3: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: 'Abspielen: Clip3A_2_Luna.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_3
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip3A_2_Luna.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_3'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip3A_2_Luna.mp3 auf media_player.funkel_audio_station_3: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz angehalten.
+            Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_3'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip3A_2_Luna.mp3 auf media_player.funkel_audio_station_3: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+  funkel_luna_3b:
+    alias: Funkel & Luna · 3B (1 Datei)
+    icon: mdi:volume-high
+    mode: restart
+    sequence:
+    - alias: Audio-Lautstärke für diese Szene auf 80 Prozent einstellen
+      action: media_player.volume_set
+      target:
+        entity_id: media_player.funkel_audio_station_3
+      data:
+        volume_level: 0.8
+      continue_on_error: true
+    - alias: 'Abspielen: Clip3B_1_Funkel.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_3
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip3B_1_Funkel.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_3'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip3B_1_Funkel.mp3 auf media_player.funkel_audio_station_3: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_3'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip3B_1_Funkel.mp3 auf media_player.funkel_audio_station_3: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+  funkel_luna_4a:
+    alias: Funkel & Luna · 4A (2 Dateien)
+    icon: mdi:volume-high
+    mode: restart
+    sequence:
+    - alias: Lavaeffekt beim Start von 4A einschalten
+      action: light.turn_on
+      target:
+        entity_id: light.funkel_effekt_station_4
+      data:
+        effect: Fire-Breathing Dragon
+        brightness_pct: 100
+    - alias: Audio-Lautstärke für diese Szene auf 80 Prozent einstellen
+      action: media_player.volume_set
+      target:
+        entity_id: media_player.funkel_audio_station_4
+      data:
+        volume_level: 0.8
+      continue_on_error: true
+    - alias: 'Abspielen: Clip4A_1_Funkel.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_4
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip4A_1_Funkel.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_4'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip4A_1_Funkel.mp3 auf media_player.funkel_audio_station_4: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_4'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip4A_1_Funkel.mp3 auf media_player.funkel_audio_station_4: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte
+            manuell steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: 'Abspielen: Clip4A_2_Luna.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_4
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip4A_2_Luna.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_4'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip4A_2_Luna.mp3 auf media_player.funkel_audio_station_4: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_4'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip4A_2_Luna.mp3 auf media_player.funkel_audio_station_4: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+  funkel_luna_4b:
+    alias: Funkel & Luna · 4B (1 Datei)
+    icon: mdi:volume-high
+    mode: restart
+    sequence:
+    - alias: Neue Übergangsansage zum Spielbereich 5 vorbereiten
+      action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_5a1_abgeschlossen
+    - alias: Audio-Lautstärke für diese Szene auf 80 Prozent einstellen
+      action: media_player.volume_set
+      target:
+        entity_id: media_player.funkel_audio_station_4
+      data:
+        volume_level: 0.8
+      continue_on_error: true
+    - alias: 'Abspielen: Clip4B_1_Funkel.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_4
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip4B_1_Funkel.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_4'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip4B_1_Funkel.mp3 auf media_player.funkel_audio_station_4: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_4'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip4B_1_Funkel.mp3 auf media_player.funkel_audio_station_4: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte
+            manuell steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: Nach bestätigtem Ende von 4B drei Sekunden warten
+      delay: 00:00:03
+    - alias: 5A_1 auf dem Spielbereich 5-Lautsprecher abspielen (ohne Station 5 zu starten)
+      action: script.funkel_luna_5a_1
+  funkel_luna_5a:
+    alias: Funkel & Luna · 5A_2 (erst beim manuellen Start von Station 5)
+    icon: mdi:volume-high
+    mode: restart
+    sequence:
+    - alias: Audio-Lautstärke für diese Szene auf 80 Prozent einstellen
+      action: media_player.volume_set
+      target:
+        entity_id: media_player.funkel_audio_station_5
+      data:
+        volume_level: 0.8
+      continue_on_error: true
+    - alias: 'Abspielen: Clip5A_2_Luna.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_5
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip5A_2_Luna.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_5'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip5A_2_Luna.mp3 auf media_player.funkel_audio_station_5: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz angehalten.
+            Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_5'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip5A_2_Luna.mp3 auf media_player.funkel_audio_station_5: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+  funkel_luna_5b:
+    alias: Funkel & Luna · 5B (2 Dateien)
+    icon: mdi:volume-high
+    mode: restart
+    sequence:
+    - alias: Audio-Lautstärke für diese Szene auf 80 Prozent einstellen
+      action: media_player.volume_set
+      target:
+        entity_id: media_player.funkel_audio_station_5
+      data:
+        volume_level: 0.8
+      continue_on_error: true
+    - alias: 'Abspielen: Clip5B_1_Funkel.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_5
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip5B_1_Funkel.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_5'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip5B_1_Funkel.mp3 auf media_player.funkel_audio_station_5: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz angehalten.
+            Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_5'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip5B_1_Funkel.mp3 auf media_player.funkel_audio_station_5: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: 'Abspielen: Clip5B_2_Luna.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_5
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip5B_2_Luna.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_5'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip5B_2_Luna.mp3 auf media_player.funkel_audio_station_5: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz angehalten.
+            Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_5'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip5B_2_Luna.mp3 auf media_player.funkel_audio_station_5: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+  funkel_luna_5c:
+    alias: Funkel & Luna · 5C (2 Dateien)
+    icon: mdi:volume-high
+    mode: restart
+    sequence:
+    - alias: Audio-Lautstärke für diese Szene auf 80 Prozent einstellen
+      action: media_player.volume_set
+      target:
+        entity_id: media_player.funkel_audio_station_5
+      data:
+        volume_level: 0.8
+      continue_on_error: true
+    - alias: 'Abspielen: Clip5C_1_Luna.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_5
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip5C_1_Luna.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_5'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip5C_1_Luna.mp3 auf media_player.funkel_audio_station_5: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz angehalten.
+            Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_5'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip5C_1_Luna.mp3 auf media_player.funkel_audio_station_5: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: 'Abspielen: Clip5C_2_Luna.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_5
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip5C_2_Luna.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_5'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip5C_2_Luna.mp3 auf media_player.funkel_audio_station_5: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz angehalten.
+            Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_5'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip5C_2_Luna.mp3 auf media_player.funkel_audio_station_5: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+  funkel_luna_6a:
+    alias: Funkel & Luna · 6A (1 Datei)
+    icon: mdi:movie-play
+    mode: restart
+    sequence:
+    - alias: Vor dem Finale Schatzfreigabe sperren
+      action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_6b1_abgeschlossen
+    - alias: Vor dem Video die Kodi-App auf Fire TV Spielbereich 6 öffnen
+      action: script.funkel_luna_kodi_vorbereiten
+      data:
+        geraet: Spielbereich 6
+    - alias: 'Abspielen: Clip6A.mp4'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_kodi_station_6
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Video/Clip6A.mp4
+        media_content_type: video/mp4
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_kodi_station_6'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip6A.mp4 auf media_player.funkel_kodi_station_6: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_kodi_station_6'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip6A.mp4 auf media_player.funkel_kodi_station_6: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte
+            manuell steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: 'Direkt nach 6A: Video 6B_1 automatisch abspielen'
+      action: script.funkel_luna_6b_1
+      data:
+        kodi_bereits_aktiv: true
+  funkel_luna_6b_1:
+    alias: Funkel & Luna · 6B_1 (1 Datei)
+    icon: mdi:movie-play
+    mode: restart
+    sequence:
+    - alias: '6B_1 beginnt: Schatz-Freigabe sperren'
+      action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_6b1_abgeschlossen
+    - if:
+      - '{{ not (kodi_bereits_aktiv | default(false) | bool) }}'
+      then:
+      - alias: Vor dem Video die Kodi-App auf Fire TV Spielbereich 6 öffnen
+        action: script.funkel_luna_kodi_vorbereiten
+        data:
+          geraet: Spielbereich 6
+    - alias: 'Abspielen: Clip6B_1.mp4'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_kodi_station_6
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Video/Clip6B_1.mp4
+        media_content_type: video/mp4
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_kodi_station_6'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip6B_1.mp4 auf media_player.funkel_kodi_station_6: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_kodi_station_6'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip6B_1.mp4 auf media_player.funkel_kodi_station_6: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte
+            manuell steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: 'Bestätigtes Ende von 6B_1: Schatzfund ab jetzt freigeben'
+      action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.funkel_luna_6b1_abgeschlossen
+  funkel_luna_6b_2:
+    alias: Funkel & Luna · 6B_2 (1 Datei)
+    icon: mdi:movie-play
+    mode: restart
+    sequence:
+    - alias: Vor dem Video die Kodi-App auf Fire TV Spielbereich 6 öffnen
+      action: script.funkel_luna_kodi_vorbereiten
+      data:
+        geraet: Spielbereich 6
+    - alias: 'Abspielen: Clip6B_2.mp4'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_kodi_station_6
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Video/Clip6B_2.mp4
+        media_content_type: video/mp4
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_kodi_station_6'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip6B_2.mp4 auf media_player.funkel_kodi_station_6: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz
+            angehalten. Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+        error: true
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_kodi_station_6'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip6B_2.mp4 auf media_player.funkel_kodi_station_6: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte
+            manuell steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+        error: true
+  funkel_luna_einzelclip:
+    alias: Funkel & Luna · Einzeldatei (Fallback, ohne Folgeautomation)
+    icon: mdi:play-box-outline
+    mode: parallel
+    max: 20
+    fields:
+      player:
+        name: media_player-Entity
+        required: true
+        selector:
+          text:
+            type: text
+      ordner:
+        name: Audio oder Video
+        required: true
+        selector:
+          select:
+            options:
+            - Audio
+            - Video
+      datei:
+        name: Vollständiger Dateiname
+        required: true
+        selector:
+          text:
+            type: text
+    sequence:
+    - condition: template
+      value_template: '{{ player in [''media_player.funkel_audio_station_1'', ''media_player.funkel_kodi_station_1'', ''media_player.funkel_audio_station_2'', ''media_player.funkel_audio_station_3'', ''media_player.funkel_audio_station_4'',
+        ''media_player.funkel_audio_station_5'', ''media_player.funkel_kodi_station_6''] and ((ordner == ''Audio'' and datei in [''Clip1A_1_Funkel.mp3'', ''Clip1A_2_Luna.mp3'',
+        ''Clip1A_3_Funkel.mp3'', ''Clip2A_1_Luna.mp3'', ''Clip2A_2_Funkel.mp3'', ''Clip2A_3_Luna.mp3'', ''Clip3A_1_Funkel.mp3'', ''Clip3A_2_Luna.mp3'',
+        ''Clip3B_1_Funkel.mp3'', ''Clip4A_1_Funkel.mp3'', ''Clip4A_2_Luna.mp3'', ''Clip4B_1_Funkel.mp3'', ''Clip5A_1_Luna.mp3'', ''Clip5A_2_Luna.mp3'',
+        ''Clip5B_1_Funkel.mp3'', ''Clip5B_2_Luna.mp3'', ''Clip5C_1_Luna.mp3'', ''Clip5C_2_Luna.mp3'']) or (ordner == ''Video'' and datei in [''Clip1B_1.mp4'',
+        ''Clip1B_2.mp4'', ''Clip2B.mp4'', ''Clip6A.mp4'', ''Clip6B_1.mp4'', ''Clip6B_2.mp4''])) }}'
+    - if:
+      - '{{ ordner == ''Video'' and player in [''media_player.funkel_kodi_station_1'', ''media_player.funkel_kodi_station_6''] }}'
+      then:
+      - alias: Kodi per ADB aktivieren, bevor die Einzeldatei gestartet wird
+        action: script.funkel_luna_kodi_vorbereiten
+        data:
+          geraet: '{{ ''Medienzone_1'' if player == ''media_player.funkel_kodi_station_1'' else ''Spielbereich 6'' }}'
+    - if:
+      - "{{ ordner == 'Audio' and player in ['media_player.funkel_audio_station_1', 'media_player.funkel_audio_station_3', 'media_player.funkel_audio_station_4', 'media_player.funkel_audio_station_5'] }}"
+      then:
+      - alias: Nur Google-Nest-Audioausgaben auf 80 Prozent setzen (nicht Gäste-TV)
+        action: media_player.volume_set
+        target:
+          entity_id: '{{ player }}'
+        data:
+          volume_level: 0.8
+        continue_on_error: true
+    - action: media_player.play_media
+      target:
+        entity_id: '{{ player }}'
+      data:
+        media_content_id: '{{ ''media-source://media_source/local/funkel_luna/'' ~ ordner ~ ''/'' ~ datei }}'
+        media_content_type: '{{ ''video/mp4'' if ordner == ''Video'' else ''audio/mpeg'' }}'
+  funkel_luna_stopp_alle:
+    alias: Funkel & Luna · MEDIEN STOPP / laufende Clipfolgen abbrechen
+    icon: mdi:stop-circle
+    mode: restart
+    sequence:
+    - action: script.turn_off
+      target:
+        entity_id: &id001
+        - script.funkel_luna_1a
+        - script.funkel_luna_1b
+        - script.funkel_luna_2a
+        - script.funkel_luna_2b
+        - script.funkel_luna_3a
+        - script.funkel_luna_3b
+        - script.funkel_luna_4a
+        - script.funkel_luna_4b
+        - script.funkel_luna_5a
+        - script.funkel_luna_5b
+        - script.funkel_luna_5c
+        - script.funkel_luna_6a
+        - script.funkel_luna_6b_1
+        - script.funkel_luna_6b_2
+        - script.funkel_luna_kodi_vorbereiten
+        - script.funkel_luna_einzelclip
+        - script.funkel_luna_5a_1
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_3a_countdown
+    - action: media_player.media_stop
+      target:
+        entity_id: &id002
+        - media_player.funkel_kodi_station_6
+        - media_player.funkel_audio_station_5
+        - media_player.funkel_audio_station_2
+        - media_player.funkel_audio_station_3
+        - media_player.funkel_audio_station_4
+        - media_player.funkel_audio_station_1
+        - media_player.funkel_kodi_station_1
+      continue_on_error: true
+  funkel_luna_spiel_starten:
+    alias: Funkel & Luna · Spiel vorbereiten (ohne Clip)
+    icon: mdi:play-circle-outline
+    mode: restart
+    sequence:
+    - alias: Rollos in Spielbereich 4 zu Spielbeginn schließen (ohne den Medienstart zu blockieren)
+      action: script.turn_on
+      target:
+        entity_id: script.funkel_luna_rollos_station_4_schliessen
+      continue_on_error: true
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.funkel_luna_spiel_aktiv
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.funkel_luna_station
+      data:
+        option: 1 · Drachennest
+  funkel_luna_station_1_starten:
+    alias: Funkel & Luna · Station 1 Spielbereich 1 starten
+    icon: mdi:table-furniture
+    mode: restart
+    sequence:
+    - action: script.turn_off
+      target:
+        entity_id: *id001
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_3a_countdown
+    - action: media_player.media_stop
+      target:
+        entity_id: *id002
+      continue_on_error: true
+    - alias: Rollos in Spielbereich 4 zu Spielbeginn schließen (ohne den Medienstart zu blockieren)
+      action: script.turn_on
+      target:
+        entity_id: script.funkel_luna_rollos_station_4_schliessen
+      continue_on_error: true
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.funkel_luna_spiel_aktiv
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.funkel_luna_station
+      data:
+        option: 1 · Drachennest
+    - action: script.turn_on
+      target:
+        entity_id: script.funkel_luna_1a
+  funkel_luna_station_2_starten:
+    alias: Funkel & Luna · Station 2 Spielbereich 2 starten
+    icon: mdi:rainbow
+    mode: restart
+    sequence:
+    - action: script.turn_off
+      target:
+        entity_id: *id001
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_3a_countdown
+    - action: media_player.media_stop
+      target:
+        entity_id: *id002
+      continue_on_error: true
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.funkel_luna_spiel_aktiv
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.funkel_luna_station
+      data:
+        option: 2 · Regenbogen
+    - action: script.turn_on
+      target:
+        entity_id: script.funkel_luna_2a
+  funkel_luna_station_3_starten:
+    alias: Funkel & Luna · Station 3 Spielbereich 3 starten
+    icon: mdi:diamond-stone
+    mode: restart
+    sequence:
+    - action: script.turn_off
+      target:
+        entity_id: *id001
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_3a_countdown
+    - action: media_player.media_stop
+      target:
+        entity_id: *id002
+      continue_on_error: true
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.funkel_luna_spiel_aktiv
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.funkel_luna_station
+      data:
+        option: 3 · Zaubersteine
+    - action: script.turn_on
+      target:
+        entity_id: script.funkel_luna_3a
+  funkel_luna_station_4_starten:
+    alias: Funkel & Luna · Station 4 Spielbereich 4 starten
+    icon: mdi:volcano
+    mode: restart
+    sequence:
+    - action: script.turn_off
+      target:
+        entity_id: *id001
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_3a_countdown
+    - action: media_player.media_stop
+      target:
+        entity_id: *id002
+      continue_on_error: true
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.funkel_luna_spiel_aktiv
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.funkel_luna_station
+      data:
+        option: 4 · Lavafeld
+    - action: script.turn_on
+      target:
+        entity_id: script.funkel_luna_4a
+  funkel_luna_station_5_starten:
+    alias: Funkel & Luna · Station 5 Spielbereich 5 starten
+    icon: mdi:egg
+    mode: restart
+    sequence:
+    - if:
+      - "{{ is_state('input_boolean.funkel_luna_lava_erledigt', 'on') and not is_state('input_boolean.funkel_luna_5a1_abgeschlossen', 'on') }}"
+      then:
+      - alias: Auf das Ende der automatischen Ansage 5A_1 warten
+        wait_template: "{{ is_state('input_boolean.funkel_luna_5a1_abgeschlossen', 'on') }}"
+        timeout: 00:07:00
+        continue_on_timeout: true
+      - if:
+        - '{{ not wait.completed }}'
+        then:
+        - action: persistent_notification.create
+          data:
+            title: Funkel & Luna · 5A_1 noch nicht beendet
+            message: 5A_2 wurde NICHT abgespielt, damit die automatische Ansage 5A_1 nicht unterbrochen wird. Bitte den Player oder die 
+              Einzelsteuerung prüfen.
+        - stop: 5A_1 nicht als abgeschlossen bestätigt. Station 5 bitte manuell erneut starten.
+    - action: script.turn_off
+      target:
+        entity_id: *id001
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_3a_countdown
+    - action: media_player.media_stop
+      target:
+        entity_id: *id002
+      continue_on_error: true
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.funkel_luna_spiel_aktiv
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.funkel_luna_station
+      data:
+        option: 5 · Schlüssel & Ei
+    - action: script.turn_on
+      target:
+        entity_id: script.funkel_luna_5a
+  funkel_luna_station_6_starten:
+    alias: Funkel & Luna · Station 6 Spielbereich 6 starten
+    icon: mdi:treasure-chest
+    mode: restart
+    sequence:
+    - alias: Schatz-Freigabe bei Neustart der Station zurücksetzen
+      action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_6b1_abgeschlossen
+    - action: script.turn_off
+      target:
+        entity_id: *id001
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_3a_countdown
+    - action: media_player.media_stop
+      target:
+        entity_id: *id002
+      continue_on_error: true
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.funkel_luna_spiel_aktiv
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.funkel_luna_station
+      data:
+        option: 6 · Schatz
+    - action: script.turn_on
+      target:
+        entity_id: script.funkel_luna_6a
+  funkel_luna_player_steuern:
+    alias: Funkel & Luna · Medien-Player manuell bedienen
+    mode: parallel
+    max: 15
+    fields:
+      player:
+        name: Media-Player
+        required: true
+        selector:
+          text:
+            type: text
+      befehl:
+        name: Befehl
+        required: true
+        selector:
+          select:
+            options:
+            - pause
+            - weiter
+            - lauter
+            - leiser
+    sequence:
+    - condition: template
+      value_template: '{{ player.startswith(''media_player.'') and befehl in [''pause'',''weiter'',''lauter'',''leiser''] }}'
+    - choose:
+      - conditions:
+        - '{{ befehl == ''pause'' }}'
+        sequence:
+        - action: media_player.media_pause
+          target:
+            entity_id: '{{ player }}'
+      - conditions:
+        - '{{ befehl == ''weiter'' }}'
+        sequence:
+        - action: media_player.media_play
+          target:
+            entity_id: '{{ player }}'
+      - conditions:
+        - '{{ befehl == ''lauter'' }}'
+        sequence:
+        - action: media_player.volume_up
+          target:
+            entity_id: '{{ player }}'
+      - conditions:
+        - '{{ befehl == ''leiser'' }}'
+        sequence:
+        - action: media_player.volume_down
+          target:
+            entity_id: '{{ player }}'
+  funkel_luna_schatz_freigeben:
+    alias: Funkel & Luna · Schatz freigeben (nur Status)
+    icon: mdi:treasure-chest
+    mode: single
+    sequence:
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.funkel_luna_schatz_freigegeben
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.funkel_luna_station
+      data:
+        option: Geschafft
+    - alias: Nach bestätigtem Spielende Status SPIEL LÄUFT beenden
+      action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_spiel_aktiv
+  funkel_luna_zuruecksetzen:
+    alias: Funkel & Luna · Alles zurücksetzen (mit Medien-Stopp)
+    icon: mdi:restore
+    mode: single
+    sequence:
+    - action: script.funkel_luna_stopp_alle
+    - action: input_boolean.turn_off
+      target:
+        entity_id:
+        - input_boolean.funkel_luna_nest_erledigt
+        - input_boolean.funkel_luna_regenbogen_erledigt
+        - input_boolean.funkel_luna_steine_erledigt
+        - input_boolean.funkel_luna_lava_erledigt
+        - input_boolean.funkel_luna_schluessel_erledigt
+        - input_boolean.funkel_luna_drachenei_erledigt
+        - input_boolean.funkel_luna_finale_erledigt
+        - input_boolean.funkel_luna_spiel_aktiv
+        - input_boolean.funkel_luna_schatz_freigegeben
+        - input_boolean.funkel_luna_3a_countdown
+        - input_boolean.funkel_luna_5a1_abgeschlossen
+        - input_boolean.funkel_luna_6b1_abgeschlossen
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.funkel_luna_station
+      data:
+        option: Bereit
+  funkel_luna_rollos_station_4_schliessen:
+    alias: Funkel & Luna · Rollos in Spielbereich 4 schließen
+    icon: mdi:blinds-closed
+    mode: restart
+    sequence:
+    - alias: Beide Rollos für das Lavafeld schließen
+      action: cover.close_cover
+      target:
+        entity_id:
+        - cover.funkel_rollo_station_4_b
+        - cover.funkel_rollo_station_4_a
+      continue_on_error: true
+    - alias: Warten, bis beide Rollos geschlossen gemeldet werden
+      wait_template: '{{ is_state(''cover.funkel_rollo_station_4_b'', ''closed'') and is_state(''cover.funkel_rollo_station_4_a'',
+        ''closed'') }}'
+      timeout: 00:01:00
+      continue_on_timeout: true
+    - alias: Wenn nötig, rechtzeitig auf ungeklärten Rollladenstatus hinweisen
+      if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Rollos prüfen
+          message: Die Schließbefehle wurden gesendet, aber mindestens ein Rollo meldet nach 60 s nicht geschlossen. Bitte vor der Lava-Szene 
+            prüfen.
+  funkel_luna_5a_1:
+    alias: Funkel & Luna · 5A_1 (automatischer Ruf ins Spielbereich 5 nach 4B)
+    icon: mdi:volume-high
+    mode: restart
+    sequence:
+    - alias: 'Ansage 5A_1 gestartet: Freigabe für 5A_2 zurücksetzen'
+      action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_5a1_abgeschlossen
+    - alias: Audio-Lautstärke für diese Szene auf 80 Prozent einstellen
+      action: media_player.volume_set
+      target:
+        entity_id: media_player.funkel_audio_station_5
+      data:
+        volume_level: 0.8
+      continue_on_error: true
+    - alias: 'Abspielen: Clip5A_1_Luna.mp3'
+      action: media_player.play_media
+      target:
+        entity_id: media_player.funkel_audio_station_5
+      data:
+        media_content_id: media-source://media_source/local/funkel_luna/Audio/Clip5A_1_Luna.mp3
+        media_content_type: audio/mpeg
+    - alias: 'Prüfen: Player hat tatsächlich mit der Wiedergabe begonnen'
+      wait_template: '{{ is_state(''media_player.funkel_audio_station_5'', ''playing'') }}'
+      timeout: 00:00:30
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Wiedergabe nicht bestätigt
+          message: 'Clip5A_1_Luna.mp3 auf media_player.funkel_audio_station_5: Kein PLAYING-Status innerhalb von 30 s. Die automatische Clipfolge wurde zum Schutz angehalten.
+            Nutze die Einzelsteuerung und prüfe den Player-Status.'
+      - stop: Der Player meldet keinen Wiedergabestart.
+    - alias: Bis zum echten Dateiende warten (Pause zählt NICHT als Ende)
+      wait_template: '{{ states(''media_player.funkel_audio_station_5'') in [''idle'', ''off'', ''standby''] }}'
+      timeout: 00:15:00
+      continue_on_timeout: true
+    - if:
+      - '{{ not wait.completed }}'
+      then:
+      - action: persistent_notification.create
+        data:
+          title: Funkel & Luna · Player-Ende unbekannt
+          message: 'Clip5A_1_Luna.mp3 auf media_player.funkel_audio_station_5: Das Dateiende wurde nicht gemeldet. Keine automatische Fortsetzung; Szene bitte manuell
+            steuern.'
+      - stop: Das Dateiende wurde nicht bestätigt.
+    - alias: Einleitung ins Spielbereich 5 vollständig abgespielt
+      action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.funkel_luna_5a1_abgeschlossen
+template:
+- sensor:
+  - name: Funkel Luna Fortschritt
+    unique_id: funkel_luna_fortschritt
+    icon: mdi:progress-check
+    unit_of_measurement: '%'
+    state: '{% set erledigt = [is_state(''input_boolean.funkel_luna_nest_erledigt'',''on''), is_state(''input_boolean.funkel_luna_regenbogen_erledigt'',''on''),
+      is_state(''input_boolean.funkel_luna_steine_erledigt'',''on''), is_state(''input_boolean.funkel_luna_lava_erledigt'',''on''), is_state(''input_boolean.funkel_luna_schluessel_erledigt'',''on''),
+      is_state(''input_boolean.funkel_luna_drachenei_erledigt'',''on''), is_state(''input_boolean.funkel_luna_finale_erledigt'',''on'')] %}{{ ((erledigt
+      | select(''eq'', true) | list | count) / 7 * 100) | round(0) | int }}'
+- sensor:
+  - name: Funkel Luna Version Hauptpackage
+    unique_id: funkel_luna_version_hauptpackage
+    icon: mdi:package-variant-closed
+    state: '4.17'
+automation:
+- id: funkel_luna_erfolg_regenbogen_v46
+  alias: Funkel & Luna · Erfolg Regenbogen repariert → Abschlussclip
+  description: Nur beim Setzen des Erfolgshakens von AUS auf AN; Abhaken setzt weiterhin den Fortschritt. Fallback bleibt unverändert.
+  mode: single
+  triggers:
+  - trigger: state
+    entity_id: input_boolean.funkel_luna_regenbogen_erledigt
+    from: 'off'
+    to: 'on'
+  actions:
+  - alias: Vorherige Clipfolge beenden, damit keine alte Warteschleife mehr eingreifen kann
+    action: script.turn_off
+    target:
+      entity_id: script.funkel_luna_2a
+    continue_on_error: true
+  - alias: Altes Medium auf dem betroffenen Gerät beenden
+    action: media_player.media_stop
+    target:
+      entity_id: media_player.funkel_audio_station_2
+    continue_on_error: true
+  - alias: Abschlussclip funkel_luna_2b separat starten (keine weiteren Szenen auslösen außer bereits vorhandene 2B→3A)
+    action: script.turn_on
+    target:
+      entity_id: script.funkel_luna_2b
+- id: funkel_luna_erfolg_steine_v46
+  alias: Funkel & Luna · Erfolg Kartoffelsteine gefunden → Abschlussclip
+  description: Nur beim Setzen des Erfolgshakens von AUS auf AN; Abhaken setzt weiterhin den Fortschritt. Fallback bleibt unverändert.
+  mode: single
+  triggers:
+  - trigger: state
+    entity_id: input_boolean.funkel_luna_steine_erledigt
+    from: 'off'
+    to: 'on'
+  actions:
+  - alias: Vorherige Clipfolge beenden, damit keine alte Warteschleife mehr eingreifen kann
+    action: script.turn_off
+    target:
+      entity_id: script.funkel_luna_3a
+    continue_on_error: true
+  - alias: Altes Medium auf dem betroffenen Gerät beenden
+    action: media_player.media_stop
+    target:
+      entity_id: media_player.funkel_audio_station_3
+    continue_on_error: true
+  - alias: 'Zaubersteine-Erfolg: Rainbow B mit 100 % Helligkeit'
+    action: light.turn_on
+    target:
+      entity_id: light.funkel_effekt_station_3
+    data:
+      brightness_pct: 100
+      effect: Rainbow B
+  - alias: Lavafeld rechtzeitig beleuchten, bevor die Kinder Spielbereich 4 betreten
+    action: light.turn_on
+    target:
+      entity_id: light.funkel_effekt_station_4
+    data:
+      effect: Fire-Breathing Dragon
+      brightness_pct: 100
+  - alias: Lichtzauber sichtbar werden lassen, bevor Funkel spricht
+    delay: 00:00:02
+  - alias: Abschlussclip funkel_luna_3b separat starten (keine weiteren Szenen auslösen außer bereits vorhandene 2B→3A)
+    action: script.turn_on
+    target:
+      entity_id: script.funkel_luna_3b
+- id: funkel_luna_erfolg_lava_v46
+  alias: Funkel & Luna · Erfolg Lavafeld überquert → Abschlussclip
+  description: Nur beim Setzen des Erfolgshakens von AUS auf AN; Abhaken setzt weiterhin den Fortschritt. Fallback bleibt unverändert.
+  mode: single
+  triggers:
+  - trigger: state
+    entity_id: input_boolean.funkel_luna_lava_erledigt
+    from: 'off'
+    to: 'on'
+  actions:
+  - alias: Vorherige Clipfolge beenden, damit keine alte Warteschleife mehr eingreifen kann
+    action: script.turn_off
+    target:
+      entity_id: script.funkel_luna_4a
+    continue_on_error: true
+  - alias: Altes Medium auf dem betroffenen Gerät beenden
+    action: media_player.media_stop
+    target:
+      entity_id: media_player.funkel_audio_station_4
+    continue_on_error: true
+  - alias: Abschlussclip funkel_luna_4b separat starten (keine weiteren Szenen auslösen außer bereits vorhandene 2B→3A)
+    action: script.turn_on
+    target:
+      entity_id: script.funkel_luna_4b
+- id: funkel_luna_erfolg_schluessel_v46
+  alias: Funkel & Luna · Erfolg Drachenschlüssel zusammengesetzt → Abschlussclip
+  description: Nur beim Setzen des Erfolgshakens von AUS auf AN; Abhaken setzt weiterhin den Fortschritt. Fallback bleibt unverändert.
+  mode: single
+  triggers:
+  - trigger: state
+    entity_id: input_boolean.funkel_luna_schluessel_erledigt
+    from: 'off'
+    to: 'on'
+  actions:
+  - alias: Vorherige Clipfolge beenden, damit keine alte Warteschleife mehr eingreifen kann
+    action: script.turn_off
+    target:
+      entity_id: script.funkel_luna_5a
+    continue_on_error: true
+  - alias: Altes Medium auf dem betroffenen Gerät beenden
+    action: media_player.media_stop
+    target:
+      entity_id: media_player.funkel_audio_station_5
+    continue_on_error: true
+  - alias: Abschlussclip funkel_luna_5b separat starten (keine weiteren Szenen auslösen außer bereits vorhandene 2B→3A)
+    action: script.turn_on
+    target:
+      entity_id: script.funkel_luna_5b
+- id: funkel_luna_erfolg_drachenei_v46
+  alias: Funkel & Luna · Erfolg Drachenei gefunden → Abschlussclip
+  description: Nur beim Setzen des Erfolgshakens von AUS auf AN; Abhaken setzt weiterhin den Fortschritt. Fallback bleibt unverändert.
+  mode: single
+  triggers:
+  - trigger: state
+    entity_id: input_boolean.funkel_luna_drachenei_erledigt
+    from: 'off'
+    to: 'on'
+  actions:
+  - alias: Vorherige Clipfolge beenden, damit keine alte Warteschleife mehr eingreifen kann
+    action: script.turn_off
+    target:
+      entity_id: script.funkel_luna_5b
+    continue_on_error: true
+  - alias: Altes Medium auf dem betroffenen Gerät beenden
+    action: media_player.media_stop
+    target:
+      entity_id: media_player.funkel_audio_station_5
+    continue_on_error: true
+  - alias: Abschlussclip funkel_luna_5c separat starten (keine weiteren Szenen auslösen außer bereits vorhandene 2B→3A)
+    action: script.turn_on
+    target:
+      entity_id: script.funkel_luna_5c
+- id: funkel_luna_erfolg_finale_v46
+  alias: Funkel & Luna · Erfolg Schatz gefunden → Abschlussclip
+  description: Nur wenn 6B_1 wirklich beendet wurde. 6B_2 erst dann per Erfolgshaken; Geschafft erst nach bestätigtem Ende von 6B_2.
+  mode: single
+  triggers:
+  - trigger: state
+    entity_id: input_boolean.funkel_luna_finale_erledigt
+    from: 'off'
+    to: 'on'
+  actions:
+  - if:
+    - "{{ not is_state('input_boolean.funkel_luna_6b1_abgeschlossen', 'on') }}"
+    then:
+    - alias: Zu früh gesetzten Schatz-Haken zurücknehmen
+      action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.funkel_luna_finale_erledigt
+    - action: persistent_notification.create
+      data:
+        title: Funkel & Luna · Schatzfund noch gesperrt
+        message: Bitte das tatsächliche Ende von Video 6B_1 abwarten. Der Erfolgshaken wurde zurückgenommen.
+    - stop: Video 6B_1 wurde noch nicht vollständig beendet.
+  - alias: Schatz wurde gefunden (Status freigeben)
+    action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.funkel_luna_schatz_freigegeben
+  - alias: 6B_2 über Kodi abspielen und auf das bestätigte Ende warten
+    action: script.funkel_luna_6b_2
+  - alias: Erst nach 6B_2 Spiel als Geschafft markieren
+    action: script.funkel_luna_schatz_freigeben
