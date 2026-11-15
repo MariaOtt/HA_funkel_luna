@@ -123,6 +123,16 @@ views:
             grid_options:
               columns: 18
               rows: auto
+          - type: custom:mushroom-entity-card
+            entity: input_boolean.funkel_luna_browser_test
+            name: Browser-Testmodus
+            icon: mdi:web
+            secondary_info: none
+            tap_action:
+              action: toggle
+            grid_options:
+              columns: 6
+              rows: auto
           - type: heading
             heading: 🧭 Szenenregie · 6 Stationen
             heading_style: title

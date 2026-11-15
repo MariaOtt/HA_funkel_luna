@@ -10,8 +10,9 @@ Eine interaktive Schnitzeljagd für Kinder mit **6 Stationen, 7 Aufgaben**, Audi
 HA_funkel_luna/
 ├── README.md
 ├── home-assistant/
-│   ├── funkel_luna_package.yaml
-│   └── funkel_luna_dashboard.yaml
+│   ├── funkel_luna_package.yaml      # 4.17: Spielsteuerung
+│   ├── funkel_luna_geraete.yaml      # Browser/Testmodus + Gerätezuordnung
+│   └── funkel_luna_dashboard.yaml    # 4.19: Bedienoberfläche
 ├── media/
 │   ├── Audio/                # 18 MP3-Sprachclips
 │   ├── Video/                # 6 MP4-Videos
@@ -30,29 +31,33 @@ Der vollständige veröffentlichte Projektstand umfasst **18 MP3-Audios, 6 MP4-V
 
 Funkel (Drache) und Luna (Einhorn) leiten durch sechs Szenen: **Drachennest → Regenbogen → Zaubersteine → Lavafeld → Schlüssel & Ei → Schatz**. Audio- und Videoclips, Licht- und Rolloeffekte begleiten die Aufgaben. Die Spielleitung kann jeden Schritt einzeln oder als Clipfolge auslösen und sieben Erfolge bestätigen. Das Dashboard besitzt sieben Ansichten: die Hauptregie und sechs Einzelsteuerungen.
 
-Das Projekt besteht weiterhin aus **einem einzigen Package** mit den Helfern, 29 Skripten und 6 Automationen. Es darf nicht in Teilpackages auseinandergezogen werden.
+Die **29 Skripte, 6 Automationen und Spielhelfer** bleiben im einen Hauptpackage. Die neue, getrennte Datei `funkel_luna_geraete.yaml` ist ein **zweites Konfigurationspackage** für logische Player-, Licht- und Rollo-Entities. Dadurch müssen Nutzer für ihre Geräte **weder das Hauptpackage noch das Dashboard bearbeiten**.
 
 ## Installation
 
-Siehe [Installationsanleitung](dokumentation/INSTALLATION.md). Die angegebenen `media_player.*`, `light.*` und `cover.*` sind **Beispiel-IDs** und müssen konsistent in Package und Dashboard durch eigene Geräte-Entities ersetzt werden.
+Siehe [Installationsanleitung](dokumentation/INSTALLATION.md). **Alle echten Geräte-IDs werden ausschließlich in `home-assistant/funkel_luna_geraete.yaml` zugeordnet.** Die logischen `media_player.funkel_*`, `light.funkel_*` und `cover.funkel_*` in Hauptpackage und Dashboard bleiben unverändert.
 
 | Dateien im Repository | Ziel auf Home Assistant |
 | --- | --- |
 | `home-assistant/funkel_luna_package.yaml` | `/config/packages/funkel_luna_package.yaml` |
+| `home-assistant/funkel_luna_geraete.yaml` | `/config/packages/funkel_luna_geraete.yaml` |
 | `home-assistant/funkel_luna_dashboard.yaml` | Rohkonfigurationseditor eines Dashboards |
 | `media/Audio/*` | `/media/funkel_luna/Audio/*` |
 | `media/Video/*` | `/media/funkel_luna/Video/*` |
 | `media/References/*` | Produktionsreferenzen, kein Pflichtordner für Home Assistant |
 
-Voraussetzungen: Home Assistant mit Packages und Media Source, passende Audio-Player, für Videos die hier verwendete Kodi-/Fire-TV-Steuerung, sowie **Mushroom Cards** und **Ring-Tile Card** für das Dashboard.
+**Browser-Testmodus:** Standardmäßig aktiviert, mit einem für Audio/Video gemeinsamen Browser-Mod-Media-Player. Installiere [Browser Mod](https://github.com/thomasloven/hass-browser_mod), registriere den HA-Browser und benenne dessen Media-Player-Entity in `media_player.funkel_browser` um (oder passe die `children:`-Einträge in der Geräte-Datei an). Ein Klick im Browser kann wegen der Autoplay-Sperre erforderlich sein. Für diese Testvariante werden Licht und Rollos nur simuliert; Fire-TV-/Kodi-Vorbereitung entfällt. Ohne Browser Mod kann Home Assistant den Browser nicht direkt als adressierbaren Medienplayer verwenden.
+
+**Realbetrieb:** In `funkel_luna_geraete.yaml` `input_boolean.funkel_luna_browser_test` auf `off` stellen und dort die neun `children:`-Geräte sowie die vier beispielhaften Licht-/Rollo-Ziele durch eigene Entity-IDs ersetzen. Die Kodi-/Fire-TV-Logik ist dann wieder aktiv.
+
+Voraussetzungen: Home Assistant mit Packages und Media Source; Browser Mod für den Browser-Test bzw. passende echte Audio- und Video-Player, dazu **Mushroom Cards** und **Ring-Tile Card** für das Dashboard.
 
 ## Prüfung
 
 ```bash
 pip install -r requirements-dev.txt
-python scripts/validate.py
-# Wenn alle 24 Clips nach der Medien-PR vorhanden sind:
 python scripts/validate.py --require-media
+python scripts/validate_devices.py
 ```
 
 Die YAML-Prüfung ersetzt keinen Test mit den tatsächlichen Home-Assistant-Geräten.
@@ -62,7 +67,7 @@ Die YAML-Prüfung ersetzt keinen Test mit den tatsächlichen Home-Assistant-Ger�
 Diese Veröffentlichung enthält **keine echten Hardware-IDs, privaten Kindernamen, Zugangsdaten oder persönliche ChatGPT-Freigabelinks** in der bereitgestellten YAML-Dokumentation. Die Medien werden ohne technische oder inhaltliche Umwandlung übernommen.
 
 ### Hinweise
-- Die Spielabläufe bleiben erhalten, die Platzhalter-IDs sind nicht unmittelbar lauffähig.
+- Im Browser-Testmodus ist die Medienwiedergabe nach einmaliger Browser-Mod-Einrichtung möglich. Reale Hardware erfordert ausschließlich Anpassungen in der Geräte-Datei.
 - Für die Audios, Videos und Referenzbilder gelten die jeweils zu klärenden Urheber- und Nutzungsrechte. Die Veröffentlichung als GitHub-Repository gewährt ohne gesonderte Lizenz nicht automatisch eine Weiterverwendungserlaubnis.
 - Beim Anpassen der Vorlage keine eigenen Secrets, personenbezogenen Daten oder echten Entity-IDs zurück ins öffentliche Repository committen.
 
